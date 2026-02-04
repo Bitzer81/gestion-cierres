@@ -62,33 +62,6 @@
                     </svg>
                     Análisis
                 </a>
-                <a href="#" class="nav-item" data-section="alimerka">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M15 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                    Alimerka
-                </a>
-                <a href="#" class="nav-item" data-section="carrefour">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M15 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                    Carrefour
-                </a>
-                <a href="#" class="nav-item" data-section="basicfit">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M15 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                    BasicFit
-                </a>
                 <a href="#" class="nav-item" data-section="clients">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -480,97 +453,6 @@
                 </div>
             </section>
 
-            <!-- Alimerka Section -->
-            <section id="alimerka" class="content-section">
-                <div class="header-banner alimerka-banner">
-                    <h2>Dashboard Alimerka</h2>
-                    <p>Seguimiento específico de rendimiento para Alimerka</p>
-                </div>
-                <div class="kpi-grid" id="alimerkaKPIs">
-                    <!-- Dynamic KPIs -->
-                </div>
-                <div class="charts-grid">
-                    <div class="chart-card full-width">
-                        <canvas id="alimerkaChart"></canvas>
-                    </div>
-                </div>
-                <div class="table-card">
-                    <div class="table-container">
-                        <table class="client-table">
-                            <thead>
-                                <tr>
-                                    <th>Centro</th>
-                                    <th>Línea</th>
-                                    <th class="text-right">Venta</th>
-                                    <th class="text-right">Margen %</th>
-                                </tr>
-                            </thead>
-                            <tbody id="alimerkaTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Carrefour Section -->
-            <section id="carrefour" class="content-section">
-                <div class="header-banner carrefour-banner">
-                    <h2>Dashboard Carrefour</h2>
-                    <p>Seguimiento específico de rendimiento para Carrefour</p>
-                </div>
-                <div class="kpi-grid" id="carrefourKPIs">
-                    <!-- Dynamic KPIs -->
-                </div>
-                <div class="charts-grid">
-                    <div class="chart-card full-width">
-                        <canvas id="carrefourChart"></canvas>
-                    </div>
-                </div>
-                <div class="table-card">
-                    <div class="table-container">
-                        <table class="client-table">
-                            <thead>
-                                <tr>
-                                    <th>Centro</th>
-                                    <th>Línea</th>
-                                    <th class="text-right">Venta</th>
-                                    <th class="text-right">Margen %</th>
-                                </tr>
-                            </thead>
-                            <tbody id="carrefourTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- BasicFit Section -->
-            <section id="basicfit" class="content-section">
-                <div class="header-banner basicfit-banner">
-                    <h2>Dashboard BasicFit</h2>
-                    <p>Seguimiento específico de rendimiento para BasicFit</p>
-                </div>
-                <div class="kpi-grid" id="basicfitKPIs">
-                    <!-- Dynamic KPIs -->
-                </div>
-                <div class="charts-grid">
-                    <div class="chart-card full-width">
-                        <canvas id="basicfitChart"></canvas>
-                    </div>
-                </div>
-                <div class="table-card">
-                    <div class="table-container">
-                        <table class="client-table">
-                            <thead>
-                                <tr>
-                                    <th>Centro</th>
-                                    <th>Línea</th>
-                                    <th class="text-right">Venta</th>
-                                    <th class="text-right">Margen %</th>
-                                </tr>
-                            </thead>
-                            <tbody id="basicfitTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
             </section>
 
             <!-- Clients Section (New) -->
@@ -628,6 +510,28 @@
                                 <input type="text" id="categoryColumn" placeholder="Ej: Categoría, Tipo, Category">
                             </div>
                             <button class="btn btn-primary" id="saveSettings">Guardar Configuración</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-card" style="margin-top: 2rem;">
+                        <h3>Gestión de Clientes Dinámicos</h3>
+                        <p>Añade o elimina clientes para los que desees tener un dashboard dedicado.</p>
+                        <div class="client-manager-form">
+                            <div class="form-row" style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                                <div class="form-group" style="flex: 2;">
+                                    <label for="newClientName">Nombre del Cliente</label>
+                                    <input type="text" id="newClientName" placeholder="Ej: ALIMERKA, NIKE, APPLE">
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="newClientColor">Color Identificativo</label>
+                                    <input type="color" id="newClientColor" value="#6366f1"
+                                        style="height: 42px; padding: 2px;">
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="addClientBtn">Añadir Cliente</button>
+                        </div>
+                        <div class="client-list-settings" id="clientListSettings" style="margin-top: 1.5rem;">
+                            <!-- Dynamic list of managed clients -->
                         </div>
                     </div>
                 </div>

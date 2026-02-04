@@ -8,29 +8,25 @@
 const AppState = {
     currentData: null,
     historicalData: [],
+    managedClients: [], // [{name: 'ALIMERKA', color: '#ff0000', id: 'alimerka'}]
     settings: {
         revenueColumn: '',
         costColumn: '',
         dateColumn: '',
         categoryColumn: ''
     },
-    charts: {
-        monthly: null,
-        distribution: null,
-        lowPerf: null,
-        alimerka: null,
-        carrefour: null,
-        basicfit: null
-    }
+    charts: {} // Dynamic charts stored here
 };
 
 // ========================================
 // Initialize Application
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
+    loadManagedClients();
     initNavigation();
     initUploadHandlers();
     initCharts();
+    initClientManager();
     loadSettings();
     loadHistoricalData();
 });
@@ -39,32 +35,83 @@ document.addEventListener('DOMContentLoaded', () => {
 // Navigation & Section Management
 // ========================================
 function initNavigation() {
-    const navItems = document.querySelectorAll('.nav-item');
-    const sections = document.querySelectorAll('.content-section');
+    const navContainer = document.querySelector('.sidebar-nav');
     const pageTitle = document.getElementById('pageTitle');
     const headerSubtitle = document.querySelector('.header-subtitle');
 
-    const sectionInfo = {
-        dashboard: { title: 'Dashboard', subtitle: 'Resumen de rendimientos y costes' },
-        upload: { title: 'Cargar Datos', subtitle: 'Importar archivo Excel mensual' },
-        history: { title: 'Histórico', subtitle: 'Cierres de meses anteriores', onEnter: renderHistory },
-        analysis: { title: 'Análisis', subtitle: 'Detalle de centros y rentabilidad', onEnter: renderAnalysis },
-        alimerka: { title: 'Alimerka', subtitle: 'Seguimiento especializado', onEnter: () => renderClientDashboard('ALIMERKA', 'alimerka') },
-        carrefour: { title: 'Carrefour', subtitle: 'Seguimiento especializado', onEnter: () => renderClientDashboard('CARREFOUR', 'carrefour') },
-        basicfit: { title: 'BasicFit', subtitle: 'Seguimiento especializado', onEnter: () => renderClientDashboard('BASIC-FIT', 'basicfit') },
-        clients: { title: 'Clientes', subtitle: 'Análisis por cliente', onEnter: renderClients },
-        settings: { title: 'Configuración', subtitle: 'Ajustes de la aplicación' }
-    };
+    // Base navigation defined in HTML, we'll append dynamic ones
+    function refreshNavigation() {
+        // Remove existing dynamic items (those with a specific class or property)
+        document.querySelectorAll('.nav-item-dynamic').forEach(el => el.remove());
 
-    navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const sectionId = item.dataset.section;
-            navigateToSection(sectionId);
+        const sectionInfo = {
+            dashboard: { title: 'Dashboard', subtitle: 'Resumen de rendimientos y costes' },
+            upload: { title: 'Cargar Datos', subtitle: 'Importar archivo Excel mensual' },
+            history: { title: 'Histórico', subtitle: 'Cierres de meses anteriores', onEnter: renderHistory },
+            analysis: { title: 'Análisis', subtitle: 'Detalle de centros y rentabilidad', onEnter: renderAnalysis },
+            clients: { title: 'Clientes', subtitle: 'Análisis por cliente', onEnter: renderClients },
+            settings: { title: 'Configuración', subtitle: 'Ajustes de la aplicación' }
+        };
+
+        // Add dynamic clients to sectionInfo
+        AppState.managedClients.forEach(client => {
+            sectionInfo[client.id] = {
+                title: client.name,
+                subtitle: 'Seguimiento especializado',
+                onEnter: () => renderClientDashboard(client.name, client.id)
+            };
+
+            // Create Nav Item
+            const navLink = document.createElement('a');
+            navLink.href = '#';
+            navLink.className = 'nav-item nav-item-dynamic';
+            navLink.dataset.section = client.id;
+            navLink.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M15 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                ${client.name}
+            `;
+
+            // Insert before settings or at the end
+            const settingsNav = document.querySelector('[data-section="settings"]');
+            navContainer.insertBefore(navLink, settingsNav);
         });
-    });
 
-    function navigateToSection(sectionId) {
+        // Re-attach click listeners
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            // Remove old listeners by cloning (simple way for this app)
+            const newItem = item.cloneNode(true);
+            item.parentNode.replaceChild(newItem, item);
+
+            newItem.addEventListener('click', (e) => {
+                e.preventDefault();
+                const sectionId = newItem.dataset.section;
+                navigateToSection(sectionId, sectionInfo);
+            });
+        });
+
+        // Initial section might need update
+        const activeItem = document.querySelector('.nav-item.active');
+        if (activeItem) {
+            const sectionId = activeItem.dataset.section;
+            // update header in case it was a dynamic one
+            const info = sectionInfo[sectionId];
+            if (info) {
+                pageTitle.textContent = info.title;
+                headerSubtitle.textContent = info.subtitle;
+            }
+        }
+    }
+
+    function navigateToSection(sectionId, infoMap) {
+        const navItems = document.querySelectorAll('.nav-item');
+        const sections = document.querySelectorAll('.content-section');
+
         // Update Nav UI
         navItems.forEach(nav => {
             nav.classList.toggle('active', nav.dataset.section === sectionId);
@@ -76,7 +123,7 @@ function initNavigation() {
         });
 
         // Update Header
-        const info = sectionInfo[sectionId];
+        const info = infoMap[sectionId];
         if (info) {
             pageTitle.textContent = info.title;
             headerSubtitle.textContent = info.subtitle;
@@ -89,11 +136,18 @@ function initNavigation() {
     }
 
     // Expose for global use
-    window.navigateToSection = navigateToSection;
+    window.refreshNavigation = refreshNavigation;
+    window.navigateToSection = (id) => navigateToSection(id, {}); // simplified fallback
+
+    refreshNavigation();
 
     // Header upload button
     document.getElementById('uploadBtn').addEventListener('click', () => {
-        navigateToSection('upload');
+        window.refreshNavigation(); // Refresh mapping
+        // We'll need a better way to handle global navigateToSection with dynamic info
+        // For now, trigger click on the nav item
+        const uploadNav = document.querySelector('[data-section="upload"]');
+        if (uploadNav) uploadNav.click();
     });
 }
 
@@ -428,7 +482,6 @@ const EXCEL_COLUMNS = {
     // Horas
     horasPrev: 'Horas_prev',
     horasReales: 'Horas_reales',
-    // Garantías
     garantiaMT: 'Garantia_MT',
     garantiaSR: 'Garantia_SR',
     garantiaMN: 'Garantia_MN',
@@ -1154,37 +1207,6 @@ function initCharts() {
             }
         }
     });
-
-    // Client-Specific Charts
-    const initClientChart = (id) => {
-        const ctx = document.getElementById(id).getContext('2d');
-        return new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: [
-                    {
-                        label: 'Vente (€)',
-                        data: [],
-                        backgroundColor: '#6366f1',
-                        borderRadius: 4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { ticks: { callback: (v) => formatCurrency(v) } }
-                }
-            }
-        });
-    };
-
-    AppState.charts.alimerka = initClientChart('alimerkaChart');
-    AppState.charts.carrefour = initClientChart('carrefourChart');
-    AppState.charts.basicfit = initClientChart('basicfitChart');
 }
 
 function updateCharts(byLineaNegocio, byCenter) {

@@ -16,7 +16,11 @@ const AppState = {
     },
     charts: {
         monthly: null,
-        distribution: null
+        distribution: null,
+        lowPerf: null,
+        alimerka: null,
+        carrefour: null,
+        basicfit: null
     }
 };
 
@@ -45,6 +49,9 @@ function initNavigation() {
         upload: { title: 'Cargar Datos', subtitle: 'Importar archivo Excel mensual' },
         history: { title: 'Histórico', subtitle: 'Cierres de meses anteriores', onEnter: renderHistory },
         analysis: { title: 'Análisis', subtitle: 'Detalle de centros y rentabilidad', onEnter: renderAnalysis },
+        alimerka: { title: 'Alimerka', subtitle: 'Seguimiento especializado', onEnter: () => renderClientDashboard('ALIMERKA', 'alimerka') },
+        carrefour: { title: 'Carrefour', subtitle: 'Seguimiento especializado', onEnter: () => renderClientDashboard('CARREFOUR', 'carrefour') },
+        basicfit: { title: 'BasicFit', subtitle: 'Seguimiento especializado', onEnter: () => renderClientDashboard('BASIC-FIT', 'basicfit') },
         clients: { title: 'Clientes', subtitle: 'Análisis por cliente', onEnter: renderClients },
         settings: { title: 'Configuración', subtitle: 'Ajustes de la aplicación' }
     };
@@ -868,6 +875,83 @@ function extractPeriodFromFileName(fileName) {
 }
 
 // ========================================
+// Client-Specific Logic
+// ========================================
+function renderClientDashboard(clientName, containerId) {
+    if (!AppState.processedData) return;
+
+    const rows = AppState.processedData.rows.filter(r =>
+        String(r.cliente).toUpperCase().includes(clientName) ||
+        String(r.nombre).toUpperCase().includes(clientName)
+    );
+
+    const totals = rows.reduce((acc, r) => {
+        acc.venta += r.venta;
+        acc.coste += r.coste;
+        acc.margen += r.margen;
+        return acc;
+    }, { venta: 0, coste: 0, margen: 0 });
+
+    const performance = totals.venta ? (totals.margen / totals.venta) * 100 : 0;
+
+    // Render KPIs
+    const kpiContainer = document.getElementById(`${containerId}KPIs`);
+    kpiContainer.innerHTML = `
+        <div class="kpi-card">
+            <div class="kpi-content">
+                <span class="kpi-label">Ventas ${clientName}</span>
+                <span class="kpi-value">${formatCurrency(totals.venta)}</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-content">
+                <span class="kpi-label">Margen (€)</span>
+                <span class="kpi-value">${formatCurrency(totals.margen)}</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-content">
+                <span class="kpi-label">Margen (%)</span>
+                <span class="kpi-value">${performance.toFixed(1)}%</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-content">
+                <span class="kpi-label">Nº Centros</span>
+                <span class="kpi-value">${rows.length}</span>
+            </div>
+        </div>
+    `;
+
+    // Render Table
+    const tableBody = document.getElementById(`${containerId}TableBody`);
+    tableBody.innerHTML = rows.map(r => `
+        <tr>
+            <td>${r.centro}</td>
+            <td><span class="badge">${r.lineaNegocio}</span></td>
+            <td class="text-right">${formatCurrency(r.venta)}</td>
+            <td class="text-right ${r.margenPct < 20 ? 'text-danger' : 'text-success'}">${r.margenPct.toFixed(1)}%</td>
+        </tr>
+    `).join('') || '<tr><td colspan="4" class="text-center">No hay datos para este cliente</td></tr>';
+
+    // Update Chart
+    const chart = AppState.charts[containerId];
+    if (chart) {
+        // Group by center for the chart
+        const byCenter = rows.reduce((acc, r) => {
+            acc[r.centro] = (acc[r.centro] || 0) + r.venta;
+            return acc;
+        }, {});
+
+        const labels = Object.keys(byCenter);
+        const values = Object.values(byCenter);
+
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = values;
+        chart.update();
+    }
+}
+// ========================================
 // UI Updates
 // ========================================
 function updateKPIs(data) {
@@ -1070,6 +1154,37 @@ function initCharts() {
             }
         }
     });
+
+    // Client-Specific Charts
+    const initClientChart = (id) => {
+        const ctx = document.getElementById(id).getContext('2d');
+        return new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Vente (€)',
+                        data: [],
+                        backgroundColor: '#6366f1',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { ticks: { callback: (v) => formatCurrency(v) } }
+                }
+            }
+        });
+    };
+
+    AppState.charts.alimerka = initClientChart('alimerkaChart');
+    AppState.charts.carrefour = initClientChart('carrefourChart');
+    AppState.charts.basicfit = initClientChart('basicfitChart');
 }
 
 function updateCharts(byLineaNegocio, byCenter) {

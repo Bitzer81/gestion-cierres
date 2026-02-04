@@ -62,6 +62,33 @@
                     </svg>
                     Análisis
                 </a>
+                <a href="#" class="nav-item" data-section="alimerka">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M15 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Alimerka
+                </a>
+                <a href="#" class="nav-item" data-section="carrefour">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M15 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Carrefour
+                </a>
+                <a href="#" class="nav-item" data-section="basicfit">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M15 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    BasicFit
+                </a>
                 <a href="#" class="nav-item" data-section="clients">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -449,6 +476,99 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alimerka Section -->
+            <section id="alimerka" class="content-section">
+                <div class="header-banner alimerka-banner">
+                    <h2>Dashboard Alimerka</h2>
+                    <p>Seguimiento específico de rendimiento para Alimerka</p>
+                </div>
+                <div class="kpi-grid" id="alimerkaKPIs">
+                    <!-- Dynamic KPIs -->
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card full-width">
+                        <canvas id="alimerkaChart"></canvas>
+                    </div>
+                </div>
+                <div class="table-card">
+                    <div class="table-container">
+                        <table class="client-table">
+                            <thead>
+                                <tr>
+                                    <th>Centro</th>
+                                    <th>Línea</th>
+                                    <th class="text-right">Venta</th>
+                                    <th class="text-right">Margen %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alimerkaTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Carrefour Section -->
+            <section id="carrefour" class="content-section">
+                <div class="header-banner carrefour-banner">
+                    <h2>Dashboard Carrefour</h2>
+                    <p>Seguimiento específico de rendimiento para Carrefour</p>
+                </div>
+                <div class="kpi-grid" id="carrefourKPIs">
+                    <!-- Dynamic KPIs -->
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card full-width">
+                        <canvas id="carrefourChart"></canvas>
+                    </div>
+                </div>
+                <div class="table-card">
+                    <div class="table-container">
+                        <table class="client-table">
+                            <thead>
+                                <tr>
+                                    <th>Centro</th>
+                                    <th>Línea</th>
+                                    <th class="text-right">Venta</th>
+                                    <th class="text-right">Margen %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="carrefourTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- BasicFit Section -->
+            <section id="basicfit" class="content-section">
+                <div class="header-banner basicfit-banner">
+                    <h2>Dashboard BasicFit</h2>
+                    <p>Seguimiento específico de rendimiento para BasicFit</p>
+                </div>
+                <div class="kpi-grid" id="basicfitKPIs">
+                    <!-- Dynamic KPIs -->
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card full-width">
+                        <canvas id="basicfitChart"></canvas>
+                    </div>
+                </div>
+                <div class="table-card">
+                    <div class="table-container">
+                        <table class="client-table">
+                            <thead>
+                                <tr>
+                                    <th>Centro</th>
+                                    <th>Línea</th>
+                                    <th class="text-right">Venta</th>
+                                    <th class="text-right">Margen %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="basicfitTableBody"></tbody>
+                        </table>
                     </div>
                 </div>
             </section>

@@ -316,6 +316,94 @@ body {
     align-items: flex-end;
 }
 
+/* ========================================
+   Client-Specific Dashboards
+   ======================================== */
+.header-banner {
+    padding: 24px;
+    border-radius: var(--border-radius-lg);
+    margin-bottom: 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.header-banner h2 {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+}
+
+.header-banner p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.alimerka-banner {
+    border-left: 4px solid var(--accent-success);
+}
+
+.alimerka-banner::after {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+}
+
+.carrefour-banner {
+    border-left: 4px solid #3b82f6;
+}
+
+.carrefour-banner::after {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+}
+
+.basicfit-banner {
+    border-left: 4px solid #ff7000;
+}
+
+.basicfit-banner::after {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255, 112, 0, 0.1) 0%, transparent 70%);
+}
+
+.client-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.client-table th,
+.client-table td {
+    padding: 12px 16px;
+    font-size: 0.85rem;
+}
+
+.text-danger {
+    color: var(--accent-danger);
+}
+
+.text-success {
+    color: var(--accent-success);
+}
+
+.text-right {
+    text-align: right;
+}
+
 /* Checkbox Style */
 .checkbox-group {
     flex-direction: row;

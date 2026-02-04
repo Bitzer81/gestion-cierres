@@ -1,0 +1,11 @@
+# Archivos temporales
+.DS_Store
+Thumbs.db
+
+# Backups manuales (si los hubiera)
+*.json
+!CierresPro_Plantilla.json
+
+# Carpetas de sistema de Gemini
+.gemini/
+brain/

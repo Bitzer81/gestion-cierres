@@ -569,6 +569,39 @@
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-area">
+                    <h2 id="modalTitle">Detalle del Centro</h2>
+                    <span id="modalSubtitle" className="text-tertiary">Información detallada de rendimiento</span>
+                </div>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-kpi-grid" id="modalKPIs">
+                    <!-- Dynamic KPIs -->
+                </div>
+                <div class="modal-table-container">
+                    <table class="modal-table">
+                        <thead>
+                            <tr>
+                                <th>Concepto</th>
+                                <th class="text-right">Real (€)</th>
+                                <th class="text-right">Presupuesto (€)</th>
+                                <th class="text-right">Desviación (€)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalTableBody">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 

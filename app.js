@@ -1263,9 +1263,140 @@ function initCharts() {
             scales: {
                 y: { ticks: { color: '#64748b', callback: (v) => formatCurrency(v) } },
                 x: { ticks: { color: '#64748b' } }
+            },
+            onClick: (e, elements) => {
+                if (elements.length > 0) {
+                    const idx = elements[0].index;
+                    const centerName = AppState.charts.bva.data.labels[idx];
+                    showDetailModal(centerName);
+                }
             }
         }
     });
+
+    // Add click handler to lowPerfChart
+    AppState.charts.lowPerf.options.onClick = (e, elements) => {
+        if (elements.length > 0) {
+            const idx = elements[0].index;
+            const centerName = AppState.charts.lowPerf.data.labels[idx];
+            showDetailModal(centerName);
+        }
+    };
+
+    // Add click handler to distribution chart
+    AppState.charts.distribution.options.onClick = (e, elements) => {
+        if (elements.length > 0) {
+            const idx = elements[0].index;
+            const businessLine = AppState.charts.distribution.data.labels[idx];
+            showBusinessLineDetail(businessLine);
+        }
+    };
+
+    initModalHandlers();
+}
+
+function initModalHandlers() {
+    const modal = document.getElementById('detailModal');
+    const closeBtn = document.getElementById('closeModal');
+
+    if (closeBtn) {
+        closeBtn.onclick = () => modal.style.display = 'none';
+    }
+
+    window.onclick = (event) => {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    };
+}
+
+function showBusinessLineDetail(businessLine) {
+    const modal = document.getElementById('detailModal');
+    const title = document.getElementById('modalTitle');
+    const kpiContainer = document.getElementById('modalKPIs');
+    const tableBody = document.getElementById('modalTableBody');
+
+    if (!AppState.processedData) return;
+
+    title.textContent = `Línea de Negocio: ${businessLine}`;
+
+    // Rows for this business line
+    const blRows = AppState.processedData.rows.filter(r => r.lineaNegocio === businessLine);
+    const totals = blRows.reduce((acc, r) => {
+        acc.venta += r.venta;
+        acc.margen += r.margen;
+        return acc;
+    }, { venta: 0, margen: 0 });
+
+    kpiContainer.innerHTML = `
+        <div class="kpi-card">
+            <span class="kpi-label">Ventas Totales</span>
+            <span class="kpi-value">${formatCurrency(totals.venta)}</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Margen Total</span>
+            <span class="kpi-value">${formatCurrency(totals.margen)}</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Rendimiento</span>
+            <span class="kpi-value">${calculateMarginPercentage(totals.venta, totals.margen).toFixed(1)}%</span>
+        </div>
+    `;
+
+    tableBody.innerHTML = blRows.map(r => `
+        <tr>
+            <td>${r.centro}</td>
+            <td class="text-right">${formatCurrency(r.venta)}</td>
+            <td class="text-right">${r.presVenta ? formatCurrency(r.presVenta) : '-'}</td>
+            <td class="text-right ${r.margen >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(r.margen)}</td>
+        </tr>
+    `).join('');
+
+    modal.style.display = 'block';
+}
+
+function showDetailModal(centerName) {
+    const modal = document.getElementById('detailModal');
+    const title = document.getElementById('modalTitle');
+    const kpiContainer = document.getElementById('modalKPIs');
+    const tableBody = document.getElementById('modalTableBody');
+
+    if (!AppState.processedData) return;
+
+    const centerData = AppState.processedData.byCenter[centerName];
+    if (!centerData) return;
+
+    title.textContent = `Detalle: ${centerName}`;
+
+    // KPIs in modal
+    kpiContainer.innerHTML = `
+        <div class="kpi-card">
+            <span class="kpi-label">Ventas</span>
+            <span class="kpi-value">${formatCurrency(centerData.venta)}</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Margen (€)</span>
+            <span class="kpi-value">${formatCurrency(centerData.margen)}</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Rendimiento</span>
+            <span class="kpi-value">${calculateMarginPercentage(centerData.venta, centerData.margen).toFixed(1)}%</span>
+        </div>
+    `;
+
+    // Detailed table for the center (all lines/rows for this center)
+    const centerRows = AppState.processedData.rows.filter(r => r.centro === centerName);
+
+    tableBody.innerHTML = centerRows.map(r => `
+        <tr>
+            <td>${r.lineaNegocio}</td>
+            <td class="text-right">${formatCurrency(r.venta)}</td>
+            <td class="text-right">${r.presVenta ? formatCurrency(r.presVenta) : '-'}</td>
+            <td class="text-right ${r.margen >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(r.margen)}</td>
+        </tr>
+    `).join('');
+
+    modal.style.display = 'block';
 }
 
 function updateCharts(byLineaNegocio, byCenter) {

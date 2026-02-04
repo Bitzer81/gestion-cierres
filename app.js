@@ -39,9 +39,7 @@ function initNavigation() {
     const pageTitle = document.getElementById('pageTitle');
     const headerSubtitle = document.querySelector('.header-subtitle');
 
-    // Base navigation defined in HTML, we'll append dynamic ones
     function refreshNavigation() {
-        // Remove existing dynamic items (those with a specific class or property)
         document.querySelectorAll('.nav-item-dynamic').forEach(el => el.remove());
 
         const sectionInfo = {
@@ -53,7 +51,6 @@ function initNavigation() {
             settings: { title: 'Configuración', subtitle: 'Ajustes de la aplicación' }
         };
 
-        // Add dynamic clients to sectionInfo
         AppState.managedClients.forEach(client => {
             sectionInfo[client.id] = {
                 title: client.name,
@@ -61,7 +58,6 @@ function initNavigation() {
                 onEnter: () => renderClientDashboard(client.name, client.id)
             };
 
-            // Create Nav Item
             const navLink = document.createElement('a');
             navLink.href = '#';
             navLink.className = 'nav-item nav-item-dynamic';
@@ -75,19 +71,14 @@ function initNavigation() {
                 </svg>
                 ${client.name}
             `;
-
-            // Insert before settings or at the end
-            const settingsNav = document.querySelector('[data-section="settings"]');
+            const settingsNav = navContainer.querySelector('[data-section="settings"]');
             navContainer.insertBefore(navLink, settingsNav);
         });
 
-        // Re-attach click listeners
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
-            // Remove old listeners by cloning (simple way for this app)
             const newItem = item.cloneNode(true);
             item.parentNode.replaceChild(newItem, item);
-
             newItem.addEventListener('click', (e) => {
                 e.preventDefault();
                 const sectionId = newItem.dataset.section;
@@ -95,11 +86,9 @@ function initNavigation() {
             });
         });
 
-        // Initial section might need update
         const activeItem = document.querySelector('.nav-item.active');
         if (activeItem) {
             const sectionId = activeItem.dataset.section;
-            // update header in case it was a dynamic one
             const info = sectionInfo[sectionId];
             if (info) {
                 pageTitle.textContent = info.title;
@@ -112,40 +101,27 @@ function initNavigation() {
         const navItems = document.querySelectorAll('.nav-item');
         const sections = document.querySelectorAll('.content-section');
 
-        // Update Nav UI
-        navItems.forEach(nav => {
-            nav.classList.toggle('active', nav.dataset.section === sectionId);
-        });
+        navItems.forEach(nav => nav.classList.toggle('active', nav.dataset.section === sectionId));
+        sections.forEach(section => section.classList.toggle('active', section.id === sectionId));
 
-        // Update Content UI
-        sections.forEach(section => {
-            section.classList.toggle('active', section.id === sectionId);
-        });
-
-        // Update Header
         const info = infoMap[sectionId];
         if (info) {
             pageTitle.textContent = info.title;
             headerSubtitle.textContent = info.subtitle;
-
-            // Execute section-specific logic
-            if (info.onEnter) {
-                info.onEnter();
-            }
+            if (info.onEnter) info.onEnter();
         }
     }
 
-    // Expose for global use
     window.refreshNavigation = refreshNavigation;
-    window.navigateToSection = (id) => navigateToSection(id, {}); // simplified fallback
+    window.navigateToSection = (id) => {
+        // Find existing listener or just trigger click
+        const nav = document.querySelector(`[data-section="${id}"]`);
+        if (nav) nav.click();
+    };
 
     refreshNavigation();
 
-    // Header upload button
     document.getElementById('uploadBtn').addEventListener('click', () => {
-        window.refreshNavigation(); // Refresh mapping
-        // We'll need a better way to handle global navigateToSection with dynamic info
-        // For now, trigger click on the nav item
         const uploadNav = document.querySelector('[data-section="upload"]');
         if (uploadNav) uploadNav.click();
     });
@@ -855,6 +831,14 @@ function updateDashboard(data) {
     if (AppState.charts && AppState.charts.monthly) { // Check if charts exist
         updateCharts(byLineaNegocio, byCenter);
     }
+
+    // Refresh dynamic client dashboards
+    AppState.managedClients.forEach(client => {
+        const section = document.getElementById(client.id);
+        if (section) {
+            renderClientDashboard(client.name, client.id);
+        }
+    });
 }
 
 function findColumnIndex(headers, keywords) {
@@ -1692,10 +1676,183 @@ window.selectClient = function (clientName) {
     `;
 };
 
-// Initial navigation setup
-document.addEventListener('DOMContentLoaded', () => {
-    // Other initializations handled in main DOMContentLoaded listener
-});
+
+// ========================================
+// Dynamic Client Management
+// ========================================
+function initClientManager() {
+    const addBtn = document.getElementById('addClientBtn');
+    const clientNameInput = document.getElementById('newClientName');
+    const clientColorInput = document.getElementById('newClientColor');
+
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            const name = clientNameInput.value.trim().toUpperCase();
+            if (!name) {
+                showToast('Introduce un nombre para el cliente', 'warning');
+                return;
+            }
+
+            // Check if exists
+            if (AppState.managedClients.some(c => c.name === name)) {
+                showToast('Este cliente ya existe', 'warning');
+                return;
+            }
+
+            const client = {
+                name: name,
+                color: clientColorInput.value,
+                id: name.toLowerCase().replace(/[^a-z0-9]/g, '-')
+            };
+
+            AppState.managedClients.push(client);
+            saveManagedClients();
+            renderClientSettingsList();
+            refreshDynamicSections();
+            window.refreshNavigation();
+
+            clientNameInput.value = '';
+            showToast(`Cliente ${name} añadido`, 'success');
+        });
+    }
+
+    renderClientSettingsList();
+    refreshDynamicSections();
+}
+
+function saveManagedClients() {
+    localStorage.setItem('cpro_managed_clients', JSON.stringify(AppState.managedClients));
+}
+
+function loadManagedClients() {
+    const saved = localStorage.getItem('cpro_managed_clients');
+    if (saved) {
+        AppState.managedClients = JSON.parse(saved);
+    } else {
+        AppState.managedClients = [
+            { name: 'ALIMERKA', color: '#10b981', id: 'alimerka' },
+            { name: 'CARREFOUR', color: '#3b82f6', id: 'carrefour' },
+            { name: 'BASIC-FIT', color: '#ff7000', id: 'basicfit' }
+        ];
+        saveManagedClients();
+    }
+}
+
+function renderClientSettingsList() {
+    const container = document.getElementById('clientListSettings');
+    if (!container) return;
+
+    if (AppState.managedClients.length === 0) {
+        container.innerHTML = '<p class="text-tertiary">No hay clientes personalizados configurados.</p>';
+        return;
+    }
+
+    container.innerHTML = `
+        <table class="settings-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 1px solid var(--border-color);">
+                    <th style="padding: 10px;">Cliente</th>
+                    <th style="padding: 10px;">Color</th>
+                    <th style="padding: 10px; text-align: right;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${AppState.managedClients.map((client, index) => `
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 10px; font-weight: 600;">${client.name}</td>
+                        <td style="padding: 10px;">
+                            <div style="width: 20px; height: 20px; border-radius: 4px; background: ${client.color};"></div>
+                        </td>
+                        <td style="padding: 10px; text-align: right;">
+                            <button class="btn btn-outline-danger btn-sm" onclick="removeManagedClient(${index})">Eliminar</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+window.removeManagedClient = (index) => {
+    const client = AppState.managedClients[index];
+    if (confirm(`¿Eliminar el dashboard de ${client.name}?`)) {
+        AppState.managedClients.splice(index, 1);
+        saveManagedClients();
+        renderClientSettingsList();
+        refreshDynamicSections();
+        window.refreshNavigation();
+        showToast(`Cliente eliminado`, 'info');
+    }
+};
+
+function refreshDynamicSections() {
+    const mainContent = document.querySelector('.main-content');
+    document.querySelectorAll('.content-section-dynamic').forEach(el => el.remove());
+
+    AppState.managedClients.forEach(client => {
+        const section = document.createElement('section');
+        section.id = client.id;
+        section.className = 'content-section content-section-dynamic';
+
+        const hexToRgba = (hex, alpha) => {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        };
+        const accentAlpha = hexToRgba(client.color, 0.1);
+
+        section.innerHTML = `
+            <div class="header-banner" style="--banner-accent: ${client.color}; --banner-accent-alpha: ${accentAlpha};">
+                <h2>Dashboard ${client.name}</h2>
+                <p>Seguimiento específico de rendimiento para ${client.name}</p>
+            </div>
+            <div class="kpi-grid" id="${client.id}KPIs"></div>
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <div class="chart-header"><h3>Distribución por Centro</h3></div>
+                    <div class="chart-container"><canvas id="${client.id}Chart"></canvas></div>
+                </div>
+            </div>
+            <div class="table-card">
+                <div class="table-container">
+                    <table class="client-table">
+                        <thead>
+                            <tr>
+                                <th>Centro</th>
+                                <th>Línea</th>
+                                <th class="text-right">Venta</th>
+                                <th class="text-right">Margen %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="${client.id}TableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        const clientsSection = document.getElementById('clients');
+        mainContent.insertBefore(section, clientsSection);
+        initDynamicClientChart(client.id);
+    });
+}
+
+function initDynamicClientChart(id) {
+    const canvas = document.getElementById(`${id}Chart`);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (AppState.charts[id]) AppState.charts[id].destroy();
+
+    AppState.charts[id] = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label: 'Vente (€)', data: [], backgroundColor: '#6366f1', borderRadius: 4 }] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { ticks: { callback: (v) => formatCurrency(v) } } }
+        }
+    });
+}
 
 // Make functions globally accessible
 window.exportData = exportData;

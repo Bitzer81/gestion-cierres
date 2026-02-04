@@ -325,8 +325,20 @@ body {
     margin-bottom: 24px;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
+    border-left: 4px solid var(--banner-accent, var(--accent-primary));
     position: relative;
     overflow: hidden;
+}
+
+.header-banner::after {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, var(--banner-accent-alpha, rgba(99, 102, 241, 0.1)) 0%, transparent 70%);
+    pointer-events: none;
 }
 
 .header-banner h2 {
@@ -337,48 +349,6 @@ body {
 .header-banner p {
     color: var(--text-secondary);
     font-size: 0.9rem;
-}
-
-.alimerka-banner {
-    border-left: 4px solid var(--accent-success);
-}
-
-.alimerka-banner::after {
-    content: '';
-    position: absolute;
-    top: -50px;
-    right: -50px;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
-}
-
-.carrefour-banner {
-    border-left: 4px solid #3b82f6;
-}
-
-.carrefour-banner::after {
-    content: '';
-    position: absolute;
-    top: -50px;
-    right: -50px;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
-}
-
-.basicfit-banner {
-    border-left: 4px solid #ff7000;
-}
-
-.basicfit-banner::after {
-    content: '';
-    position: absolute;
-    top: -50px;
-    right: -50px;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(255, 112, 0, 0.1) 0%, transparent 70%);
 }
 
 .client-table {

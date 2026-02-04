@@ -1910,8 +1910,18 @@ function refreshDynamicSections() {
 
         section.innerHTML = `
             <div class="header-banner" style="--banner-accent: ${client.color}; --banner-accent-alpha: ${accentAlpha};">
-                <h2>Dashboard ${client.name}</h2>
-                <p>Seguimiento específico de rendimiento para ${client.name}</p>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h2>Dashboard ${client.name}</h2>
+                        <p>Seguimiento específico de rendimiento para ${client.name}</p>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="exportToPDF('${client.id}', 'Dashboard_${client.name}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        PDF Report
+                    </button>
+                </div>
             </div>
             <div class="kpi-grid" id="${client.id}KPIs"></div>
             <div class="charts-grid">
@@ -1959,6 +1969,54 @@ function initDynamicClientChart(id) {
         }
     });
 }
+
+// ========================================
+// PDF Export Functionality
+// ========================================
+async function exportToPDF(elementId, fileName = 'Reporte') {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    showToast('Generando PDF...', 'info');
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const canvas = await html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#0f172a' // Match app background
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`${fileName}_${new Date().toISOString().split('T')[0]}.pdf`);
+
+        showToast('PDF generado correctamente', 'success');
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        showToast('Error al generar el PDF', 'error');
+    }
+}
+
+// Global initialization for main dashboard PDF
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('exportPdfBtn');
+    if (btn) {
+        btn.addEventListener('click', () => {
+            const period = document.getElementById('currentPeriod').textContent;
+            exportToPDF('dashboard', `Dashboard_General_${period}`);
+        });
+    }
+});
+
+window.exportToPDF = exportToPDF;
 
 // Make functions globally accessible
 window.exportData = exportData;

@@ -163,7 +163,11 @@
                         <div class="kpi-content">
                             <span class="kpi-label">Ventas Totales</span>
                             <span class="kpi-value" id="totalRevenue">€0.00</span>
-                            <span class="kpi-change positive" id="revenueChange">+0%</span>
+                            <div class="kpi-meta">
+                                <span class="kpi-badge yoy" id="revenueYoY" title="Vs. Año Anterior"></span>
+                                <span class="kpi-badge budget" id="revenueBudget"
+                                    title="Cumplimiento Presupuesto"></span>
+                            </div>
                         </div>
                     </div>
                     <div class="kpi-card kpi-cost">
@@ -191,7 +195,11 @@
                         <div class="kpi-content">
                             <span class="kpi-label">Margen Total</span>
                             <span class="kpi-value" id="netMargin">€0.00</span>
-                            <span class="kpi-change" id="marginChange">0%</span>
+                            <div class="kpi-meta">
+                                <span class="kpi-badge yoy" id="marginYoY" title="Vs. Año Anterior"></span>
+                                <span class="kpi-badge budget" id="marginBudget"
+                                    title="Cumplimiento Presupuesto"></span>
+                            </div>
                         </div>
                     </div>
                     <div class="kpi-card kpi-performance">
@@ -230,6 +238,14 @@
                         </div>
                         <div class="chart-container">
                             <canvas id="costDistributionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card full-width">
+                        <div class="chart-header">
+                            <h3>Presupuesto vs. Real (Top Centros)</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="bvaChart"></canvas>
                         </div>
                     </div>
                     <div class="chart-card full-width">

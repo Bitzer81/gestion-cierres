@@ -15,6 +15,17 @@ const AppState = {
         dateColumn: '',
         categoryColumn: ''
     },
+    processedData: null, // Stores current processed snapshot
+    yoyMetrics: {
+        revenueChange: 0,
+        marginChange: 0,
+        available: false
+    },
+    budgetMetrics: {
+        revenueAchievement: 0,
+        marginAchievement: 0,
+        available: false
+    },
     charts: {} // Dynamic charts stored here
 };
 
@@ -537,6 +548,8 @@ function processData(data) {
         estado: getColumnIndex(headers, EXCEL_COLUMNS.estado),
         categoria: getColumnIndex(headers, EXCEL_COLUMNS.categoria),
         venta: getColumnIndex(headers, EXCEL_COLUMNS.venta),
+        presVenta: getColumnIndex(headers, EXCEL_COLUMNS.presVenta),
+        presCoste: getColumnIndex(headers, EXCEL_COLUMNS.presCoste),
         costeMT: getColumnIndex(headers, EXCEL_COLUMNS.costeMT),
         coste: getColumnIndex(headers, EXCEL_COLUMNS.coste),
         margen: getColumnIndex(headers, EXCEL_COLUMNS.margen),
@@ -565,6 +578,8 @@ function processData(data) {
     let totalCosteMT = 0;
     let totalMargen = 0;
     let totalMargen2 = 0;
+    let totalPresVenta = 0;
+    let totalPresCoste = 0;
 
     const byCenter = {};
     const byLineaNegocio = {};
@@ -578,7 +593,6 @@ function processData(data) {
         const centro = row[colIdx.nomCentro] || 'Sin Centro';
         const nombre = row[colIdx.nombre] || '';
 
-        // Skip "Total" or summary rows usually found at the bottom
         // Skip "Total" or summary rows usually found at the bottom
         // refined to avoid false positives (e.g. "Estación Total")
         const centerUpper = String(centro).toUpperCase().trim();
@@ -600,6 +614,8 @@ function processData(data) {
         const estado = row[colIdx.estado] || 'Sin Estado';
         const cliente = row[colIdx.nomCliente] || '';
         const venta = parseNumber(row[colIdx.venta]);
+        const presVenta = parseNumber(row[colIdx.presVenta]);
+        const presCoste = parseNumber(row[colIdx.presCoste]);
         const costeMT = parseNumber(row[colIdx.costeMT]);
         const coste = parseNumber(row[colIdx.coste]);
         const margen = parseNumber(row[colIdx.margen]);
@@ -620,7 +636,7 @@ function processData(data) {
         }
 
         const margen2 = parseNumber(row[colIdx.margen2]);
-        const margen2Pct = parseNumber(row[colIdx.margen2Pct]);
+        // const margen2Pct = parseNumber(row[colIdx.margen2Pct]); // This was not used in the original code, keeping it commented out.
 
         // Accumulate totals
         totalVenta += venta;
@@ -628,103 +644,117 @@ function processData(data) {
         totalCosteMT += costeMT;
         totalMargen += margen;
         totalMargen2 += margen2;
+        totalPresVenta += presVenta;
+        totalPresCoste += presCoste;
 
         // Group by Center
         if (!byCenter[centro]) {
-            byCenter[centro] = { venta: 0, coste: 0, costeMT: 0, margen: 0, margen2: 0, count: 0 };
+            byCenter[centro] = { venta: 0, coste: 0, costeMT: 0, margen: 0, margen2: 0, count: 0, presVenta: 0 };
         }
         byCenter[centro].venta += venta;
         byCenter[centro].coste += coste;
         byCenter[centro].costeMT += costeMT;
         byCenter[centro].margen += margen;
         byCenter[centro].margen2 += margen2;
+        byCenter[centro].presVenta += presVenta;
         byCenter[centro].count++;
 
         // Group by Línea de Negocio
         if (!byLineaNegocio[lineaNegocio]) {
-            byLineaNegocio[lineaNegocio] = { venta: 0, coste: 0, costeMT: 0, margen: 0, margen2: 0, count: 0 };
+            byLineaNegocio[lineaNegocio] = { venta: 0, coste: 0, margen: 0, count: 0 };
         }
         byLineaNegocio[lineaNegocio].venta += venta;
         byLineaNegocio[lineaNegocio].coste += coste;
-        byLineaNegocio[lineaNegocio].costeMT += costeMT;
         byLineaNegocio[lineaNegocio].margen += margen;
-        byLineaNegocio[lineaNegocio].margen2 += margen2;
         byLineaNegocio[lineaNegocio].count++;
 
         // Group by Estado
         if (!byEstado[estado]) {
-            byEstado[estado] = { venta: 0, coste: 0, margen: 0, count: 0 };
+            byEstado[estado] = { count: 0, venta: 0 };
         }
         byEstado[estado].venta += venta;
-        byEstado[estado].coste += coste;
-        byEstado[estado].margen += margen;
         byEstado[estado].count++;
 
         // Store processed row
         processedRows.push({
-            centro,
-            lineaNegocio,
-            tipo,
-            numero,
-            nombre,
-            cliente, // Add client for Analysis
-            estado,
-            venta,
-            costeMT,
-            coste,
-            margen,
-            margenPct,
-            margen2,
-            margen2Pct
+            centro, cliente, lineaNegocio, estado, venta, coste, margen, margenPct, margen2
         });
     });
 
-    // Calculate overall margin percentage
-    const margenPctTotal = calculateMarginPercentage(totalVenta, totalMargen);
-    const margen2PctTotal = totalVenta > 0 ? (totalMargen2 / totalVenta) * 100 : 0;
-    // Store processed data in AppState
-    AppState.processedData = {
+    const period = extractPeriodFromFileName(data.fileName);
+
+    const processedSnapshot = {
+        period: period,
+        fileName: data.fileName,
         rows: processedRows,
         totals: {
-            totalVenta,
-            totalCoste,
-            totalCosteMT,
-            totalMargen,
-            totalMargen2
+            totalVenta, totalCoste, totalCosteMT, totalMargen, totalMargen2,
+            totalPresVenta, totalPresCoste
         },
         byCenter,
         byLineaNegocio,
-        byEstado
+        byEstado,
+        timestamp: new Date().toISOString()
     };
+
+    AppState.processedData = processedSnapshot;
+
+    // Calculate YoY
+    calculateYoY(processedSnapshot);
+
+    // Calculate Budget Metrics
+    calculateBudgets(processedSnapshot);
 
     // Populate filters with unique values
     populateFilters(processedRows);
 
     // Update UI
-    updateDashboard(AppState.processedData);
+    updateDashboard(processedSnapshot);
 
-    // Update current period
-    const periodName = extractPeriodFromFileName(data.fileName);
-    document.getElementById('currentPeriod').textContent = periodName;
+    // Update current period display
+    document.getElementById('currentPeriod').textContent = period;
 
     // Save to history
-    saveToHistory({
-        period: periodName,
-        fileName: data.fileName,
-        date: new Date().toISOString(),
-        totals: {
-            totalRevenue: totalVenta,
-            totalCost: totalCoste,
-            netMargin: totalMargen,
-            performance: margenPctTotal,
-            margen2: totalMargen2,
-            margen2Pct: margen2PctTotal
-        },
-        byLineaNegocio,
-        byCenter
-    });
+    saveToHistory(processedSnapshot);
+}
 
-    console.log('Data processed successfully:', AppState.processedData);
+function calculateYoY(current) {
+    const parts = current.period.split(' ');
+    if (parts.length !== 2) return;
+
+    const month = parts[0];
+    const year = parseInt(parts[1]);
+    const prevYearPeriod = `${month} ${year - 1}`;
+
+    const prevYearData = AppState.historicalData.find(h => h.period === prevYearPeriod);
+
+    if (prevYearData) {
+        const revChange = ((current.totals.totalVenta - prevYearData.totals.totalVenta) / prevYearData.totals.totalVenta) * 100;
+        const marChange = ((current.totals.totalMargen - prevYearData.totals.netMargin) / prevYearData.totals.netMargin) * 100;
+
+        AppState.yoyMetrics = {
+            revenueChange: revChange,
+            marginChange: marChange,
+            available: true
+        };
+    } else {
+        AppState.yoyMetrics.available = false;
+    }
+}
+
+function calculateBudgets(current) {
+    const totalPresVenta = current.totals.totalPresVenta;
+    const totalPresMargen = current.totals.totalPresVenta - current.totals.totalPresCoste;
+
+    if (totalPresVenta > 0) {
+        AppState.budgetMetrics = {
+            revenueAchievement: (current.totals.totalVenta / totalPresVenta) * 100,
+            marginAchievement: (current.totals.totalMargen / totalPresMargen) * 100,
+            available: true
+        };
+    } else {
+        AppState.budgetMetrics.available = false;
+    }
 }
 
 // ========================================
@@ -992,20 +1022,47 @@ function renderClientDashboard(clientName, containerId) {
 // UI Updates
 // ========================================
 function updateKPIs(data) {
-    document.getElementById('totalRevenue').textContent = formatCurrency(data.totalRevenue);
-    document.getElementById('totalCost').textContent = formatCurrency(data.totalCost);
-    document.getElementById('netMargin').textContent = formatCurrency(data.netMargin);
-    document.getElementById('performance').textContent = data.performance.toFixed(1) + '%';
+    document.getElementById('totalRevenue').textContent = formatCurrency(data.totalVenta);
+    document.getElementById('totalCost').textContent = formatCurrency(data.totalCoste);
+    document.getElementById('netMargin').textContent = formatCurrency(data.totalMargen);
+    const performance = data.totalVenta ? (data.totalMargen / data.totalVenta) * 100 : 0;
+    document.getElementById('performance').textContent = performance.toFixed(1) + '%';
 
-    // Update margin change indicator
-    const marginChange = document.getElementById('marginChange');
-    if (data.netMargin >= 0) {
-        marginChange.className = 'kpi-change positive';
-        marginChange.textContent = '+' + data.performance.toFixed(1) + '%';
+    // Update YoY Badges
+    const revYoY = document.getElementById('revenueYoY');
+    const marYoY = document.getElementById('marginYoY');
+
+    if (AppState.yoyMetrics.available) {
+        updateYoYBadge(revYoY, AppState.yoyMetrics.revenueChange);
+        updateYoYBadge(marYoY, AppState.yoyMetrics.marginChange);
     } else {
-        marginChange.className = 'kpi-change negative';
-        marginChange.textContent = data.performance.toFixed(1) + '%';
+        revYoY.style.display = 'none';
+        marYoY.style.display = 'none';
     }
+
+    // Update Budget Badges
+    const revBudget = document.getElementById('revenueBudget');
+    const marBudget = document.getElementById('marginBudget');
+
+    if (AppState.budgetMetrics.available) {
+        updateBudgetBadge(revBudget, AppState.budgetMetrics.revenueAchievement);
+        updateBudgetBadge(marBudget, AppState.budgetMetrics.marginAchievement);
+    } else {
+        revBudget.style.display = 'none';
+        marBudget.style.display = 'none';
+    }
+}
+
+function updateYoYBadge(el, value) {
+    el.style.display = 'inline-flex';
+    el.className = `kpi-badge yoy ${value >= 0 ? 'positive' : 'negative'}`;
+    el.textContent = `${value >= 0 ? '▲' : '▼'} ${Math.abs(value).toFixed(1)}% YoY`;
+}
+
+function updateBudgetBadge(el, value) {
+    el.style.display = 'inline-flex';
+    el.className = `kpi-badge budget ${value >= 100 ? 'positive' : 'warning'}`;
+    el.textContent = `🎯 ${value.toFixed(0)}%`;
 }
 
 function updateDataTable(rows, totalVenta, totalCoste) {
@@ -1191,6 +1248,24 @@ function initCharts() {
             }
         }
     });
+
+    // Budget vs Actual Chart (BvA)
+    const bvaCtx = document.getElementById('bvaChart').getContext('2d');
+    AppState.charts.bva = new Chart(bvaCtx, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels: { color: '#94a3b8' } }
+            },
+            scales: {
+                y: { ticks: { color: '#64748b', callback: (v) => formatCurrency(v) } },
+                x: { ticks: { color: '#64748b' } }
+            }
+        }
+    });
 }
 
 function updateCharts(byLineaNegocio, byCenter) {
@@ -1237,7 +1312,38 @@ function updateCharts(byLineaNegocio, byCenter) {
         AppState.charts.lowPerf.update();
     }
 
-    // 3. Update Monthly Chart (if historical data exists)
+    // 3. Update BvA Chart (Budget vs Actual)
+    if (AppState.charts.bva) {
+        const centers = Object.keys(byCenter);
+        const bvaData = centers
+            .map(c => ({
+                name: c,
+                actual: byCenter[c].venta,
+                budget: byCenter[c].presVenta
+            }))
+            .filter(c => c.budget > 0)
+            .sort((a, b) => b.actual - a.actual)
+            .slice(0, 5); // Top 5 centers with budget
+
+        AppState.charts.bva.data.labels = bvaData.map(c => c.name);
+        AppState.charts.bva.data.datasets = [
+            {
+                label: 'Real (€)',
+                data: bvaData.map(c => c.actual),
+                backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                borderRadius: 4
+            },
+            {
+                label: 'Presupuesto (€)',
+                data: bvaData.map(c => c.budget),
+                backgroundColor: 'rgba(99, 102, 241, 0.4)',
+                borderRadius: 4
+            }
+        ];
+        AppState.charts.bva.update();
+    }
+
+    // 4. Update Monthly Chart (if historical data exists)
     updateMonthlyChart();
 }
 

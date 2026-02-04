@@ -677,9 +677,47 @@ body {
 }
 
 .kpi-value {
+    display: block;
     font-size: 1.75rem;
     font-weight: 700;
-    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+}
+
+.kpi-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.kpi-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.kpi-badge.yoy.positive {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-success);
+}
+
+.kpi-badge.yoy.negative {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--accent-danger);
+}
+
+.kpi-badge.budget.positive {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--accent-primary);
+}
+
+.kpi-badge.budget.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--accent-warning);
 }
 
 .kpi-change {

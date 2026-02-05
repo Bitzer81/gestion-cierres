@@ -1,6 +1,6 @@
 /* ========================================
    CierresPro - Professional CRM & Analytics
-   Reorganized & Optimized Version 1.2.5
+   Reorganized & Optimized Version 1.2.6
    ======================================== */
 
 // ========================================
@@ -380,8 +380,8 @@ function processData(data) {
 
         const name = nameRaw.toUpperCase();
         const centro = centroRaw;
-        const linea = (row[colIdx.lineaNegocio] || 'Sin Línea').trim();
-        const estado = (row[colIdx.estado] || 'Sin Estado').trim();
+        const linea = String(row[colIdx.lineaNegocio] || 'Sin Línea').trim();
+        const estado = String(row[colIdx.estado] || 'Sin Estado').trim();
 
         // 1. FILTRADO DE FILAS VACÍAS O DE ENCABEZADO REPETIDO
         if (!name || name === 'UNDEFINED' || name === 'NULL' || name === 'NOMBRE' || name === 'NOM_CLIENTE') return;

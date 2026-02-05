@@ -1,6 +1,6 @@
 /* ========================================
    CierresPro - Professional CRM & Analytics
-   Reorganized & Optimized Version 1.2.7
+   Reorganized & Optimized Version 1.3.0
    ======================================== */
 
 // ========================================
@@ -872,23 +872,52 @@ function initCharts() {
     };
 
     AppState.charts.monthly = new Chart(document.getElementById('monthlyChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Ingresos', borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', fill: true, tension: 0.4 }, { label: 'Costes', borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', fill: true, tension: 0.4 }] }, options: common });
-    AppState.charts.distribution = new Chart(document.getElementById('costDistributionChart'), { type: 'doughnut', data: { labels: [], datasets: [{ backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308'], borderWidth: 2, borderColor: '#ffffff' }] }, options: common });
-    AppState.charts.lowPerf = new Chart(document.getElementById('lowPerfChart'), { type: 'bar', data: { labels: [], datasets: [{ label: 'Margen %', backgroundColor: 'rgba(239, 68, 68, 0.8)', borderRadius: 4 }] }, options: { ...common, indexAxis: 'y' } });
-    AppState.charts.bva = new Chart(document.getElementById('bvaChart'), { type: 'bar', data: { labels: [], datasets: [] }, options: { ...common, onClick: (e, els) => { if (els.length) showDetailModal(AppState.charts.bva.data.labels[els[0].index]); } } });
+
+    AppState.charts.distribution = new Chart(document.getElementById('costDistributionChart'), { type: 'doughnut', data: { labels: [], datasets: [{ backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6'], borderWidth: 2, borderColor: '#ffffff' }] }, options: common });
+
+    AppState.charts.topVentas = new Chart(document.getElementById('topVentasChart'), {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label: 'Ventas (€)', backgroundColor: '#10b981', borderRadius: 4 }] },
+        options: { ...common, indexAxis: 'y', onClick: (e, els) => { if (els.length) showDetailModal(AppState.charts.topVentas.data.labels[els[0].index]); } }
+    });
+
+    AppState.charts.topMargen = new Chart(document.getElementById('topMargenChart'), {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label: 'Margen (€)', backgroundColor: '#6366f1', borderRadius: 4 }] },
+        options: { ...common, indexAxis: 'y', onClick: (e, els) => { if (els.length) showDetailModal(AppState.charts.topMargen.data.labels[els[0].index]); } }
+    });
 
     AppState.charts.distribution.options.onClick = (e, els) => { if (els.length) showBusinessLineDetail(AppState.charts.distribution.data.labels[els[0].index]); };
     initModalHandlers();
 }
 
 function updateCharts(byL, byC) {
+    // Distribution chart - Ventas por línea de negocio
     const ls = Object.keys(byL).sort((a, b) => byL[b].venta - byL[a].venta).slice(0, 8);
-    AppState.charts.distribution.data.labels = ls; AppState.charts.distribution.data.datasets[0].data = ls.map(l => byL[l].venta); AppState.charts.distribution.update();
+    AppState.charts.distribution.data.labels = ls;
+    AppState.charts.distribution.data.datasets[0].data = ls.map(l => byL[l].venta);
+    AppState.charts.distribution.update();
 
-    const low = Object.keys(byC).map(c => ({ name: c, pct: calculateMarginPercentage(byC[c].venta, byC[c].margen) })).filter(c => c.pct < 20).sort((a, b) => a.pct - b.pct).slice(0, 10);
-    AppState.charts.lowPerf.data.labels = low.map(c => c.name); AppState.charts.lowPerf.data.datasets[0].data = low.map(c => c.pct); AppState.charts.lowPerf.update();
+    // Top 5 Centros por Venta
+    const topVentas = Object.keys(byC)
+        .filter(c => c && c.trim() !== '')
+        .map(c => ({ name: c, venta: byC[c].venta }))
+        .sort((a, b) => b.venta - a.venta)
+        .slice(0, 5);
+    AppState.charts.topVentas.data.labels = topVentas.map(c => c.name);
+    AppState.charts.topVentas.data.datasets[0].data = topVentas.map(c => c.venta);
+    AppState.charts.topVentas.update();
 
-    const bva = Object.keys(byC).map(c => ({ name: c, act: byC[c].venta, bud: byC[c].presVenta })).filter(c => c.bud > 0).sort((a, b) => b.act - a.act).slice(0, 5);
-    AppState.charts.bva.data.labels = bva.map(c => c.name); AppState.charts.bva.data.datasets = [{ label: 'Real', data: bva.map(c => c.act), backgroundColor: '#10b981' }, { label: 'Presupuesto', data: bva.map(c => c.bud), backgroundColor: '#6366f1' }]; AppState.charts.bva.update();
+    // Top 5 Centros por Margen
+    const topMargen = Object.keys(byC)
+        .filter(c => c && c.trim() !== '')
+        .map(c => ({ name: c, margen: byC[c].margen }))
+        .sort((a, b) => b.margen - a.margen)
+        .slice(0, 5);
+    AppState.charts.topMargen.data.labels = topMargen.map(c => c.name);
+    AppState.charts.topMargen.data.datasets[0].data = topMargen.map(c => c.margen);
+    AppState.charts.topMargen.update();
+
     updateMonthlyChart();
 }
 

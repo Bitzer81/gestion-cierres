@@ -113,52 +113,33 @@ function initPdfGlobalHandler() {
 // 3. Navigation & Routing
 // ========================================
 function initNavigation() {
-    const navContainer = document.querySelector('.sidebar-nav');
     const pageTitle = document.getElementById('pageTitle');
     const headerSubtitle = document.querySelector('.header-subtitle');
 
-    function refreshNavigation() {
-        document.querySelectorAll('.nav-item-dynamic').forEach(el => el.remove());
-        const sectionInfo = {
-            dashboard: { title: 'Dashboard', subtitle: 'Resumen de rendimientos y costes' },
-            upload: { title: 'Cargar Datos', subtitle: 'Importar archivo Excel mensual' },
-            history: { title: 'Histórico', subtitle: 'Cierres de meses anteriores', onEnter: renderHistory },
-            analysis: { title: 'Análisis', subtitle: 'Detalle de centros y rentabilidad', onEnter: renderAnalysis },
-            clients: { title: 'Clientes', subtitle: 'Análisis por cliente', onEnter: renderClients },
-            settings: { title: 'Configuración', subtitle: 'Ajustes de la aplicación' }
-        };
+    const sectionInfo = {
+        dashboard: { title: 'Resumen General', subtitle: 'Vista combinada de métricas y análisis' },
+        clients: { title: 'Gestión de Clientes', subtitle: 'Análisis detallado por cliente', onEnter: renderClients },
+        history: { title: 'Histórico de Cierres', subtitle: 'Registros de meses anteriores', onEnter: renderHistory },
+        settings: { title: 'Configuración', subtitle: 'Ajustes del sistema y datos', onEnter: loadSettings }
+    };
 
-        AppState.managedClients.forEach(client => {
-            sectionInfo[client.id] = {
-                title: client.name,
-                subtitle: 'Seguimiento especializado',
-                onEnter: () => renderClientDashboard(client.name, client.id)
-            };
-            const navLink = document.createElement('a');
-            navLink.href = '#';
-            navLink.className = 'nav-item nav-item-dynamic';
-            navLink.dataset.section = client.id;
-            navLink.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M15 3.13a4 4 0 0 1 0 7.75"></path></svg>${client.name}`;
-            const settingsNav = navContainer.querySelector('[data-section="settings"]');
-            navContainer.insertBefore(navLink, settingsNav);
-        });
+    function navigateToSection(sectionId) {
+        if (sectionId === 'upload') {
+            toggleUploadPanel(true);
+            return;
+        }
 
-        document.querySelectorAll('.nav-item').forEach(item => {
-            const newItem = item.cloneNode(true);
-            item.parentNode.replaceChild(newItem, item);
-            newItem.addEventListener('click', (e) => {
-                e.preventDefault();
-                navigateToSection(newItem.dataset.section, sectionInfo);
-            });
-        });
-    }
-
-    function navigateToSection(sectionId, infoMap) {
         const navItems = document.querySelectorAll('.nav-item');
         const sections = document.querySelectorAll('.content-section');
+
         navItems.forEach(nav => nav.classList.toggle('active', nav.dataset.section === sectionId));
-        sections.forEach(section => section.classList.toggle('active', section.id === sectionId));
-        const info = infoMap[sectionId];
+        sections.forEach(section => {
+            if (section.id !== 'upload') {
+                section.classList.toggle('active', section.id === sectionId);
+            }
+        });
+
+        const info = sectionInfo[sectionId];
         if (info) {
             pageTitle.textContent = info.title;
             headerSubtitle.textContent = info.subtitle;
@@ -166,12 +147,20 @@ function initNavigation() {
         }
     }
 
-    window.refreshNavigation = refreshNavigation;
-    window.navigateToSection = (id) => {
-        const nav = document.querySelector(`[data-section="${id}"]`);
-        if (nav) nav.click();
-    };
-    refreshNavigation();
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateToSection(item.dataset.section);
+        });
+    });
+
+    window.navigateToSection = navigateToSection;
+}
+
+function toggleUploadPanel(show) {
+    const uploadSec = document.getElementById('upload');
+    uploadSec.style.display = show ? 'flex' : 'none';
+    uploadSec.classList.toggle('active', show);
 }
 
 // ========================================
@@ -196,7 +185,7 @@ function initUploadHandlers() {
     fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
 
     document.getElementById('cancelUpload').addEventListener('click', () => {
-        document.getElementById('previewContainer').style.display = 'none';
+        toggleUploadPanel(false);
         AppState.currentData = null;
     });
 
@@ -204,8 +193,8 @@ function initUploadHandlers() {
         if (AppState.currentData) {
             try {
                 processData(AppState.currentData);
-                document.getElementById('previewContainer').style.display = 'none';
-                document.querySelector('[data-section="dashboard"]').click();
+                toggleUploadPanel(false);
+                window.navigateToSection('dashboard');
                 showToast('Datos cargados correctamente', 'success');
             } catch (error) {
                 showToast('Error al procesar datos: ' + error.message, 'error');
@@ -519,6 +508,7 @@ function updateDashboard(data) {
         byL[r.lineaNegocio].venta += r.venta; byL[r.lineaNegocio].margen += r.margen;
     });
     if (AppState.charts.monthly) updateCharts(byL, byC);
+    renderAnalysis();
     AppState.managedClients.forEach(cl => { if (document.getElementById(cl.id)) renderClientDashboard(cl.name, cl.id); });
 }
 
@@ -552,15 +542,7 @@ window.selectClient = (name) => {
 };
 
 function initClientManager() {
-    const add = document.getElementById('addClientBtn');
-    if (add) add.onclick = () => {
-        const n = document.getElementById('newClientName').value.trim().toUpperCase();
-        if (!n || AppState.managedClients.some(c => c.name === n)) return showToast('Nombre inválido o duplicado', 'warning');
-        AppState.managedClients.push({ name: n, color: document.getElementById('newClientColor').value, id: n.toLowerCase().replace(/[^a-z0-9]/g, '-') });
-        saveManagedClients(); renderClientSettingsList(); refreshDynamicSections(); window.refreshNavigation();
-        document.getElementById('newClientName').value = ''; showToast('Cliente añadido', 'success');
-    };
-    renderClientSettingsList(); refreshDynamicSections();
+    renderClientSettingsList();
 }
 
 function saveManagedClients() { localStorage.setItem('cpro_managed_clients', JSON.stringify(AppState.managedClients)); }
@@ -580,14 +562,8 @@ window.removeManagedClient = (i) => {
 };
 
 function refreshDynamicSections() {
-    const main = document.querySelector('.main-content');
-    document.querySelectorAll('.content-section-dynamic').forEach(el => el.remove());
-    AppState.managedClients.forEach(cl => {
-        const sec = document.createElement('section'); sec.id = cl.id; sec.className = 'content-section content-section-dynamic';
-        sec.innerHTML = `<div class="header-banner" style="--banner-accent:${cl.color}"><div style="display:flex;justify-content:space-between"><div><h2>Dashboard ${cl.name}</h2></div><button class="btn btn-primary btn-sm" onclick="exportToPDF('${cl.id}', 'Dashboard_${cl.name}')">PDF Report</button></div></div><div class="kpi-grid" id="${cl.id}KPIs"></div><div class="charts-grid"><div class="chart-card full-width"><h3>Distribución por Centro</h3><div class="chart-container"><canvas id="${cl.id}Chart"></canvas></div></div></div><div class="table-card"><table class="client-table"><thead><tr><th>Centro</th><th>Línea</th><th class="text-right">Venta</th><th class="text-right">Margen %</th></tr></thead><tbody id="${cl.id}TableBody"></tbody></table></div>`;
-        main.insertBefore(sec, document.getElementById('clients'));
-        initDynamicClientChart(cl.id);
-    });
+    // Ya no generamos secciones dinámicas para simplificar la página.
+    // Los clientes favoritos se mostrarán dentro de la vista de "Clientes".
 }
 
 function renderClientDashboard(name, id) {
@@ -604,14 +580,41 @@ function renderClientDashboard(name, id) {
 // 9. Chart Controller
 // ========================================
 function initCharts() {
-    const common = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } };
+    // Chart.js Global Defaults for Light Theme
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.scale.grid.color = 'rgba(226, 232, 240, 0.4)';
 
-    AppState.charts.monthly = new Chart(document.getElementById('monthlyChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Ingresos', borderColor: '#10b981', fill: true }, { label: 'Costes', borderColor: '#ef4444', fill: true }] }, options: common });
-    AppState.charts.distribution = new Chart(document.getElementById('costDistributionChart'), { type: 'doughnut', data: { labels: [], datasets: [{ backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308'] }] }, options: common });
-    AppState.charts.lowPerf = new Chart(document.getElementById('lowPerfChart'), { type: 'bar', data: { labels: [], datasets: [{ label: 'Margen %', backgroundColor: '#ef4444' }] }, options: { ...common, indexAxis: 'y' } });
+    const common = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    usePointStyle: true,
+                    padding: 20,
+                    color: '#475569'
+                }
+            },
+            tooltip: {
+                backgroundColor: '#ffffff',
+                titleColor: '#0f172a',
+                bodyColor: '#475569',
+                borderColor: '#e2e8f0',
+                borderWidth: 1,
+                padding: 12,
+                displayColors: true,
+                boxPadding: 6
+            }
+        }
+    };
+
+    AppState.charts.monthly = new Chart(document.getElementById('monthlyChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Ingresos', borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', fill: true, tension: 0.4 }, { label: 'Costes', borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', fill: true, tension: 0.4 }] }, options: common });
+    AppState.charts.distribution = new Chart(document.getElementById('costDistributionChart'), { type: 'doughnut', data: { labels: [], datasets: [{ backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308'], borderWidth: 2, borderColor: '#ffffff' }] }, options: common });
+    AppState.charts.lowPerf = new Chart(document.getElementById('lowPerfChart'), { type: 'bar', data: { labels: [], datasets: [{ label: 'Margen %', backgroundColor: 'rgba(239, 68, 68, 0.8)', borderRadius: 4 }] }, options: { ...common, indexAxis: 'y' } });
     AppState.charts.bva = new Chart(document.getElementById('bvaChart'), { type: 'bar', data: { labels: [], datasets: [] }, options: { ...common, onClick: (e, els) => { if (els.length) showDetailModal(AppState.charts.bva.data.labels[els[0].index]); } } });
 
-    AppState.charts.lowPerf.options.onClick = (e, els) => { if (els.length) showDetailModal(AppState.charts.lowPerf.data.labels[els[0].index]); };
     AppState.charts.distribution.options.onClick = (e, els) => { if (els.length) showBusinessLineDetail(AppState.charts.distribution.data.labels[els[0].index]); };
     initModalHandlers();
 }
@@ -730,7 +733,7 @@ async function exportToPDF(id, name) {
     showToast('Generando PDF...', 'info');
     try {
         const { jsPDF } = window.jspdf;
-        const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#0f172a' });
+        const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#f8fafc' });
         const img = canvas.toDataURL('image/png'), pdf = new jsPDF('p', 'mm', 'a4');
         const props = pdf.getImageProperties(img), w = pdf.internal.pageSize.getWidth(), h = (props.height * w) / props.width;
         pdf.addImage(img, 'PNG', 0, 0, w, h); pdf.save(`${name}.pdf`); showToast('PDF exportado', 'success');

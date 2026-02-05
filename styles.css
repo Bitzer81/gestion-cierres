@@ -7,36 +7,38 @@
    1. Variables & Base Design Tokens
    ======================================== */
 :root {
-    /* Colors - Dark Theme */
-    --bg-primary: #0a0a0f;
-    --bg-secondary: #12121a;
-    --bg-tertiary: #1a1a24;
-    --bg-card: linear-gradient(145deg, #15151f 0%, #1a1a26 100%);
-    --bg-card-hover: linear-gradient(145deg, #1a1a26 0%, #20202c 100%);
+    /* Colors - Light Theme (Soft Modern) */
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-card-hover: #fdfdfd;
 
     /* Accent & Semantic Colors */
     --accent-primary: #6366f1;
-    --accent-primary-light: #818cf8;
+    --accent-primary-light: #4f46e5;
     --accent-secondary: #8b5cf6;
     --accent-success: #10b981;
     --accent-warning: #f59e0b;
     --accent-danger: #ef4444;
 
     /* Semantic Branding */
-    --color-revenue: var(--accent-success);
-    --color-cost: var(--accent-danger);
-    --color-margin: var(--accent-primary);
+    --color-revenue: #059669;
+    --color-cost: #dc2626;
+    --color-margin: #4f46e5;
 
     /* Text Palette */
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
     --text-tertiary: #64748b;
-    --text-muted: #475569;
+    --text-muted: #94a3b8;
 
     /* Effects */
-    --border-color: rgba(255, 255, 255, 0.08);
-    --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    --glow-primary: 0 0 30px rgba(99, 102, 241, 0.3);
+    --border-color: #e2e8f0;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
     /* Layout & Spacing */
     --sidebar-width: 260px;
@@ -101,7 +103,7 @@ body {
     gap: 12px;
     font-weight: 700;
     font-size: 1.25rem;
-    color: white;
+    color: var(--text-primary);
 }
 
 .logo svg {
@@ -135,8 +137,8 @@ body {
 }
 
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--accent-primary);
 }
 
 .nav-item:hover svg {
@@ -156,7 +158,7 @@ body {
 .sidebar-footer {
     padding: 24px;
     border-top: 1px solid var(--border-color);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--bg-tertiary);
 }
 
 .current-period {
@@ -193,7 +195,7 @@ body {
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid var(--border-color);
-    background: rgba(10, 10, 15, 0.8);
+    background: rgba(248, 250, 252, 0.8);
     backdrop-filter: blur(10px);
     position: sticky;
     top: 0;
@@ -257,11 +259,13 @@ body {
     border-radius: var(--border-radius-lg);
     padding: 24px;
     transition: all var(--transition-base);
+    box-shadow: var(--shadow-sm);
 }
 
 .kpi-card:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--accent-primary);
 }
 
 .kpi-value {
@@ -330,7 +334,7 @@ td {
 }
 
 tbody tr:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--bg-tertiary);
 }
 
 .critical-row {
@@ -362,6 +366,7 @@ tbody tr:hover {
     padding: 24px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
 }
 
 .chart-container {
@@ -411,7 +416,7 @@ tbody tr:hover {
     top: 0;
     width: 100%;
     height: 100%;
-    background: rgba(2, 6, 23, 0.85);
+    background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(8px);
 }
 
@@ -483,6 +488,22 @@ tbody tr:hover {
     min-width: 250px;
     animation: slideIn 0.3s ease;
     border-left: 4px solid var(--accent-primary);
+}
+
+/* Upload Panel Overlay */
+#upload.active {
+    position: fixed;
+    top: var(--header-height);
+    right: 0;
+    bottom: 0;
+    left: var(--sidebar-width);
+    z-index: 500;
+    background: rgba(10, 10, 15, 0.95);
+    backdrop-filter: blur(10px);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
 }
 
 @keyframes slideIn {

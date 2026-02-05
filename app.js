@@ -349,8 +349,8 @@ function processData(data) {
     data.rows.forEach(row => {
         if (!row || !row.length) return;
 
-        // Extraer valores básicos
-        const nameRaw = String(row[colIdx.nombre] || row[colIdx.nomCliente] || '').trim();
+        // Extraer valores básicos (Prioridad a Nom_cliente sobre Nombre)
+        const nameRaw = String(row[colIdx.nomCliente] || row[colIdx.nombre] || '').trim();
         const centroRaw = String(row[colIdx.nomCentro] || '').trim();
         const codCli = String(row[colIdx.codCliente] || '').trim();
         const codCen = String(row[colIdx.codCentro] || '').trim();
@@ -364,7 +364,6 @@ function processData(data) {
         if (!name || name === 'UNDEFINED' || name === 'NULL' || name === 'NOMBRE' || name === 'NOM_CLIENTE') return;
 
         // 2. FILTRADO ULTRA-ESTRICTO DE SUB-TOTALES Y RESÚMENES
-        // Miramos en TODAS las columnas de texto si hay palabras prohibidas
         const isSummaryRow = row.some(cell => {
             if (typeof cell !== 'string') return false;
             const c = cell.toUpperCase();
@@ -372,16 +371,18 @@ function processData(data) {
         });
         if (isSummaryRow) return;
 
-        // 3. VALIDACIÓN DE IDENTIDAD (Debe tener algún identificador de negocio)
+        // 3. VALIDACIÓN DE IDENTIDAD
         if (!codCli && !codCen && !centroRaw && !nameRaw) return;
 
         const venta = parseNumber(row[colIdx.venta]);
         const coste = parseNumber(row[colIdx.coste]);
         const margen = parseNumber(row[colIdx.margen]);
+        const mPct = parseNumber(row[colIdx.margenPct]);
+        const m2Pct = parseNumber(row[colIdx.margen2Pct]);
         const presV = parseNumber(row[colIdx.presVenta]);
         const presC = parseNumber(row[colIdx.presCoste]);
 
-        // 4. IGNORAR FILAS SIN ACTIVIDAD REAL (Si centro está vacío y valores son 0, es ruido)
+        // 4. IGNORAR FILAS SIN ACTIVIDAD REAL
         if (!centroRaw && venta === 0 && coste === 0 && margen === 0) return;
 
         // Si hemos pasado todos los filtros, acumulamos
@@ -401,6 +402,7 @@ function processData(data) {
         byLinea[linea].margen += margen;
 
         processedRows.push({
+            codCliente: codCli,
             centro,
             cliente: nameRaw || 'Sin Cliente',
             lineaNegocio: linea,
@@ -408,8 +410,10 @@ function processData(data) {
             venta,
             coste,
             margen,
-            margenPct: calculateMarginPercentage(venta, margen),
-            presVenta: presV
+            margenPct: mPct || calculateMarginPercentage(venta, margen),
+            margen2Pct: m2Pct,
+            presVenta: presV,
+            allData: row
         });
     });
 
@@ -647,7 +651,7 @@ function refreshDynamicSections() {
 
 function renderClientDashboard(name, id) {
     if (!AppState.processedData) return;
-    const rows = AppState.processedData.rows.filter(r => String(r.cliente).toUpperCase().includes(name) || String(r.nombre).toUpperCase().includes(name));
+    const rows = AppState.processedData.rows.filter(r => String(r.cliente).toUpperCase().includes(name));
     const tots = rows.reduce((a, r) => { a.v += r.venta; a.m += r.margen; return a; }, { v: 0, m: 0 });
     document.getElementById(`${id}KPIs`).innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(tots.v)}</strong></div><div class="kpi-card"><span>Margen (€)</span><strong>${formatCurrency(tots.m)}</strong></div><div class="kpi-card"><span>Margen (%)</span><strong>${calculateMarginPercentage(tots.v, tots.m).toFixed(1)}%</strong></div><div class="kpi-card"><span>Centros</span><strong>${rows.length}</strong></div>`;
     document.getElementById(`${id}TableBody`).innerHTML = rows.map(r => `<tr><td>${r.centro}</td><td>${r.lineaNegocio}</td><td class="text-right">${formatCurrency(r.venta)}</td><td class="text-right">${r.margenPct.toFixed(1)}%</td></tr>`).join('');

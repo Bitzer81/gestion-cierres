@@ -346,17 +346,24 @@ function processData(data) {
 
     data.rows.forEach(row => {
         if (!row || !row.length) return;
-        const centro = row[colIdx.nomCentro] || 'Sin Centro';
-        const name = String(row[colIdx.nombre] || '').toUpperCase();
-        if (name.includes('TOTAL') || name.startsWith('SUMA')) return;
 
+        const name = String(row[colIdx.nombre] || row[colIdx.nomCliente] || '').toUpperCase().trim();
+        const centro = String(row[colIdx.nomCentro] || '').trim();
+        const linea = row[colIdx.lineaNegocio] || 'Sin Línea';
+        const estado = row[colIdx.estado] || 'Sin Estado';
+
+        // FILTRADO ROBUSTO DE FILAS DE TOTAL / SUBTOTAL / VACÍAS
+        if (!name || name === 'UNDEFINED' || name === 'NULL') return;
+        if (name.includes('TOTAL') || name.startsWith('SUMA') || name.includes('RESULTADO') || name === 'CLIENTE') return;
+
+        // Si no tiene centro Y no tiene venta real, probablemente es una fila de ruido o encabezado repetido
         const venta = parseNumber(row[colIdx.venta]);
         const coste = parseNumber(row[colIdx.coste]);
+        if (!centro && venta === 0 && coste === 0) return;
+
         const margen = parseNumber(row[colIdx.margen]);
         const presV = parseNumber(row[colIdx.presVenta]);
         const presC = parseNumber(row[colIdx.presCoste]);
-        const linea = row[colIdx.lineaNegocio] || 'Sin Línea';
-        const estado = row[colIdx.estado] || 'Sin Estado';
 
         totalV += venta; totalC += coste; totalM += margen; totalPV += presV; totalPC += presC;
 
@@ -366,7 +373,17 @@ function processData(data) {
         if (!byLinea[linea]) byLinea[linea] = { venta: 0, margen: 0 };
         byLinea[linea].venta += venta; byLinea[linea].margen += margen;
 
-        processedRows.push({ centro, cliente: row[colIdx.nomCliente], lineaNegocio: linea, estado, venta, coste, margen, margenPct: calculateMarginPercentage(venta, margen), presVenta: presV });
+        processedRows.push({
+            centro,
+            cliente: row[colIdx.nomCliente] || row[colIdx.nombre] || 'Sin Cliente',
+            lineaNegocio: linea,
+            estado,
+            venta,
+            coste,
+            margen,
+            margenPct: calculateMarginPercentage(venta, margen),
+            presVenta: presV
+        });
     });
 
     const period = extractPeriodFromFileName(data.fileName);
@@ -399,11 +416,44 @@ function calculateBudgets(current) {
 function parseNumber(v) {
     if (v === undefined || v === null || v === '') return 0;
     if (typeof v === 'number') return v;
-    let s = String(v).trim(), neg = false;
-    if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.replace(/[()]/g, ''); }
-    else if (s.endsWith('-')) { neg = true; s = s.slice(0, -1); }
-    const n = parseFloat(s.replace(/[€$]/g, '').replace(/\./g, '').replace(/\s/g, '').replace(',', '.'));
-    return isNaN(n) ? 0 : (neg ? -Math.abs(n) : n);
+
+    let s = String(v).trim();
+    if (!s) return 0;
+
+    // Detectar si es un formato contable con paréntesis: (1.234,56)
+    let neg = false;
+    if (s.startsWith('(') && s.endsWith(')')) {
+        neg = true;
+        s = s.replace(/[()]/g, '');
+    } else if (s.endsWith('-')) {
+        neg = true;
+        s = s.slice(0, -1);
+    } else if (s.startsWith('-')) {
+        neg = true;
+        s = s.slice(1);
+    }
+
+    // Limpiar símbolos de moneda y espacios
+    s = s.replace(/[€$£\s]/g, '');
+
+    // Lógica para decidir si el separador decimal es coma o punto
+    // Si hay puntos y comas, asumimos formato ES (punto miles, coma decimal)
+    // Ej: 1.234,56 -> 1234.56
+    if (s.includes('.') && s.includes(',')) {
+        s = s.replace(/\./g, '').replace(',', '.');
+    }
+    // Si solo hay coma y aparece al final (ej: 1234,56), es decimal
+    else if (s.includes(',') && s.lastIndexOf(',') > s.lastIndexOf('.')) {
+        s = s.replace(/\./g, '').replace(',', '.');
+    }
+    // Si hay múltiples puntos, son separadores de miles (ej: 1.234.567)
+    else if ((s.match(/\./g) || []).length > 1) {
+        s = s.replace(/\./g, '');
+    }
+
+    const n = parseFloat(s);
+    if (isNaN(n)) return 0;
+    return neg ? -Math.abs(n) : n;
 }
 
 function extractPeriodFromFileName(f) {

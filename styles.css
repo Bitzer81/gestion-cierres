@@ -232,7 +232,7 @@ body {
 
 .btn-primary {
     background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    color: white;
+    color: var(--text-primary);
 }
 
 .btn-outline {
@@ -557,7 +557,7 @@ tbody tr:hover {
 .filter-group select {
     padding: 10px;
     background: var(--bg-tertiary);
-    color: white;
+    color: var(--text-primary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
 }
@@ -667,7 +667,7 @@ tbody tr:hover {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    color: white;
+    color: var(--text-primary);
 }
 
 .clients-list {

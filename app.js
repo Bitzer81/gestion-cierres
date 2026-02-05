@@ -225,7 +225,7 @@ function initUploadHandlers() {
     const headerUpload = document.getElementById('uploadBtn');
     if (headerUpload) {
         headerUpload.addEventListener('click', () => {
-            document.querySelector('[data-section="upload"]').click();
+            toggleUploadPanel(true);
         });
     }
 

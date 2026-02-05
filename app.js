@@ -320,7 +320,9 @@ function processData(data) {
     const colIdx = {};
     Object.keys(EXCEL_COLUMNS).forEach(key => colIdx[key] = getColumnIndex(heads, EXCEL_COLUMNS[key]));
 
-    let totalV = 0, totalC = 0, totalM = 0, totalPV = 0, totalPC = 0;
+    if (colIdx.venta === -1 || colIdx.coste === -1) {
+        throw new Error('No se han encontrado las columnas de "Venta" o "Coste". Revisa la configuración o usa la plantilla.');
+    }
     const byCenter = {}, byLinea = {}, byEstado = {}, processedRows = [];
 
     data.rows.forEach(row => {
@@ -490,8 +492,16 @@ function updateDashboard(data) {
     updateDataTable(data.rows);
     const byC = {}, byL = {};
     data.rows.forEach(r => {
-        if (!byC[r.centro]) byC[r.centro] = { revenue: 0, cost: 0, margin: 0, venta: r.venta, margen: r.margen, presVenta: r.presVenta || 0 };
-        else { byC[r.centro].revenue += r.venta; byC[r.centro].venta += r.venta; byC[r.centro].margen += r.margen; }
+        if (!byC[r.centro]) {
+            byC[r.centro] = { revenue: r.venta, cost: r.coste, margin: r.margen, venta: r.venta, margen: r.margen, presVenta: r.presVenta || 0 };
+        } else {
+            byC[r.centro].revenue += r.venta;
+            byC[r.centro].cost += r.coste;
+            byC[r.centro].margin += r.margen;
+            byC[r.centro].venta += r.venta;
+            byC[r.centro].margen += r.margen;
+            byC[r.centro].presVenta += (r.presVenta || 0);
+        }
         if (!byL[r.lineaNegocio]) byL[r.lineaNegocio] = { venta: 0, margen: 0 };
         byL[r.lineaNegocio].venta += r.venta; byL[r.lineaNegocio].margen += r.margen;
     });

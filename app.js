@@ -1,6 +1,6 @@
 /* ========================================
    CierresPro - Professional CRM & Analytics
-   Reorganized & Optimized Version 1.3.0
+   Reorganized & Optimized Version 1.3.1
    ======================================== */
 
 // ========================================
@@ -893,30 +893,36 @@ function initCharts() {
 
 function updateCharts(byL, byC) {
     // Distribution chart - Ventas por línea de negocio
-    const ls = Object.keys(byL).sort((a, b) => byL[b].venta - byL[a].venta).slice(0, 8);
-    AppState.charts.distribution.data.labels = ls;
-    AppState.charts.distribution.data.datasets[0].data = ls.map(l => byL[l].venta);
-    AppState.charts.distribution.update();
+    if (AppState.charts.distribution) {
+        const ls = Object.keys(byL).sort((a, b) => byL[b].venta - byL[a].venta).slice(0, 8);
+        AppState.charts.distribution.data.labels = ls;
+        AppState.charts.distribution.data.datasets[0].data = ls.map(l => byL[l].venta);
+        AppState.charts.distribution.update();
+    }
 
     // Top 5 Centros por Venta
-    const topVentas = Object.keys(byC)
-        .filter(c => c && c.trim() !== '')
-        .map(c => ({ name: c, venta: byC[c].venta }))
-        .sort((a, b) => b.venta - a.venta)
-        .slice(0, 5);
-    AppState.charts.topVentas.data.labels = topVentas.map(c => c.name);
-    AppState.charts.topVentas.data.datasets[0].data = topVentas.map(c => c.venta);
-    AppState.charts.topVentas.update();
+    if (AppState.charts.topVentas) {
+        const topVentas = Object.keys(byC)
+            .filter(c => c && c.trim() !== '')
+            .map(c => ({ name: c, venta: byC[c].venta }))
+            .sort((a, b) => b.venta - a.venta)
+            .slice(0, 5);
+        AppState.charts.topVentas.data.labels = topVentas.map(c => c.name);
+        AppState.charts.topVentas.data.datasets[0].data = topVentas.map(c => c.venta);
+        AppState.charts.topVentas.update();
+    }
 
     // Top 5 Centros por Margen
-    const topMargen = Object.keys(byC)
-        .filter(c => c && c.trim() !== '')
-        .map(c => ({ name: c, margen: byC[c].margen }))
-        .sort((a, b) => b.margen - a.margen)
-        .slice(0, 5);
-    AppState.charts.topMargen.data.labels = topMargen.map(c => c.name);
-    AppState.charts.topMargen.data.datasets[0].data = topMargen.map(c => c.margen);
-    AppState.charts.topMargen.update();
+    if (AppState.charts.topMargen) {
+        const topMargen = Object.keys(byC)
+            .filter(c => c && c.trim() !== '')
+            .map(c => ({ name: c, margen: byC[c].margen }))
+            .sort((a, b) => b.margen - a.margen)
+            .slice(0, 5);
+        AppState.charts.topMargen.data.labels = topMargen.map(c => c.name);
+        AppState.charts.topMargen.data.datasets[0].data = topMargen.map(c => c.margen);
+        AppState.charts.topMargen.update();
+    }
 
     updateMonthlyChart();
 }

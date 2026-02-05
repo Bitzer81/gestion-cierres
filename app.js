@@ -364,6 +364,14 @@ function processData(data) {
     const colIdx = {};
     Object.keys(EXCEL_COLUMNS).forEach(key => colIdx[key] = getColumnIndex(heads, EXCEL_COLUMNS[key]));
 
+    // Debug: mostrar columnas detectadas
+    console.log('Columnas detectadas:', {
+        nomCliente: colIdx.nomCliente,
+        nomCentro: colIdx.nomCentro,
+        nombre: colIdx.nombre,
+        headers: heads.slice(0, 10)
+    });
+
     if (colIdx.venta === -1 || colIdx.coste === -1) {
         throw new Error('No se han encontrado las columnas de "Venta" o "Coste". Revisa la configuración o usa la plantilla.');
     }

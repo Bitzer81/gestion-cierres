@@ -100,8 +100,11 @@ function initPdfGlobalHandler() {
     const btn = document.getElementById('exportPdfBtn');
     if (btn) {
         btn.addEventListener('click', () => {
-            const period = document.getElementById('currentPeriod').textContent;
-            exportToPDF('dashboard', `Dashboard_General_${period}`);
+            const activeSection = document.querySelector('.content-section.active');
+            if (activeSection) {
+                const period = document.getElementById('currentPeriod').textContent;
+                exportToPDF(activeSection.id, `Reporte_${activeSection.id.toUpperCase()}_${period}`);
+            }
         });
     }
 }
@@ -211,6 +214,15 @@ function initUploadHandlers() {
     });
 
     document.getElementById('exportBtn').addEventListener('click', exportData);
+
+    // Header Upload Button
+    const headerUpload = document.getElementById('uploadBtn');
+    if (headerUpload) {
+        headerUpload.addEventListener('click', () => {
+            document.querySelector('[data-section="upload"]').click();
+        });
+    }
+
     document.getElementById('filterCentro').addEventListener('change', filterData);
     document.getElementById('filterLinea').addEventListener('change', filterData);
     document.getElementById('filterEstado').addEventListener('change', filterData);

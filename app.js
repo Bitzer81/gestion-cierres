@@ -341,41 +341,68 @@ function processData(data) {
     if (colIdx.venta === -1 || colIdx.coste === -1) {
         throw new Error('No se han encontrado las columnas de "Venta" o "Coste". Revisa la configuración o usa la plantilla.');
     }
+
     let totalV = 0, totalC = 0, totalM = 0, totalPV = 0, totalPC = 0;
-    const byCenter = {}, byLinea = {}, byEstado = {}, processedRows = [];
+    const byCenter = {}, byLinea = {}, processedRows = [];
+    const forbiddenKeywords = ['TOTAL', 'SUBTOTAL', 'STOTAL', 'SUMA', 'RESULTADO', 'PROMEDIO', 'ACUMULADO', 'VARIACION'];
 
     data.rows.forEach(row => {
         if (!row || !row.length) return;
 
-        const name = String(row[colIdx.nombre] || row[colIdx.nomCliente] || '').toUpperCase().trim();
-        const centro = String(row[colIdx.nomCentro] || '').trim();
-        const linea = row[colIdx.lineaNegocio] || 'Sin Línea';
-        const estado = row[colIdx.estado] || 'Sin Estado';
+        // Extraer valores básicos
+        const nameRaw = String(row[colIdx.nombre] || row[colIdx.nomCliente] || '').trim();
+        const centroRaw = String(row[colIdx.nomCentro] || '').trim();
+        const codCli = String(row[colIdx.codCliente] || '').trim();
+        const codCen = String(row[colIdx.codCentro] || '').trim();
 
-        // FILTRADO ROBUSTO DE FILAS DE TOTAL / SUBTOTAL / VACÍAS
-        if (!name || name === 'UNDEFINED' || name === 'NULL') return;
-        if (name.includes('TOTAL') || name.startsWith('SUMA') || name.includes('RESULTADO') || name === 'CLIENTE') return;
+        const name = nameRaw.toUpperCase();
+        const centro = centroRaw;
+        const linea = (row[colIdx.lineaNegocio] || 'Sin Línea').trim();
+        const estado = (row[colIdx.estado] || 'Sin Estado').trim();
 
-        // Si no tiene centro Y no tiene venta real, probablemente es una fila de ruido o encabezado repetido
+        // 1. FILTRADO DE FILAS VACÍAS O DE ENCABEZADO REPETIDO
+        if (!name || name === 'UNDEFINED' || name === 'NULL' || name === 'NOMBRE' || name === 'NOM_CLIENTE') return;
+
+        // 2. FILTRADO ULTRA-ESTRICTO DE SUB-TOTALES Y RESÚMENES
+        // Miramos en TODAS las columnas de texto si hay palabras prohibidas
+        const isSummaryRow = row.some(cell => {
+            if (typeof cell !== 'string') return false;
+            const c = cell.toUpperCase();
+            return forbiddenKeywords.some(key => c.includes(key));
+        });
+        if (isSummaryRow) return;
+
+        // 3. VALIDACIÓN DE IDENTIDAD (Debe tener algún identificador de negocio)
+        if (!codCli && !codCen && !centroRaw && !nameRaw) return;
+
         const venta = parseNumber(row[colIdx.venta]);
         const coste = parseNumber(row[colIdx.coste]);
-        if (!centro && venta === 0 && coste === 0) return;
-
         const margen = parseNumber(row[colIdx.margen]);
         const presV = parseNumber(row[colIdx.presVenta]);
         const presC = parseNumber(row[colIdx.presCoste]);
 
-        totalV += venta; totalC += coste; totalM += margen; totalPV += presV; totalPC += presC;
+        // 4. IGNORAR FILAS SIN ACTIVIDAD REAL (Si centro está vacío y valores son 0, es ruido)
+        if (!centroRaw && venta === 0 && coste === 0 && margen === 0) return;
+
+        // Si hemos pasado todos los filtros, acumulamos
+        totalV += venta;
+        totalC += coste;
+        totalM += margen;
+        totalPV += presV;
+        totalPC += presC;
 
         if (!byCenter[centro]) byCenter[centro] = { venta: 0, margen: 0, presVenta: 0 };
-        byCenter[centro].venta += venta; byCenter[centro].margen += margen; byCenter[centro].presVenta += presV;
+        byCenter[centro].venta += venta;
+        byCenter[centro].margen += margen;
+        byCenter[centro].presVenta += presV;
 
         if (!byLinea[linea]) byLinea[linea] = { venta: 0, margen: 0 };
-        byLinea[linea].venta += venta; byLinea[linea].margen += margen;
+        byLinea[linea].venta += venta;
+        byLinea[linea].margen += margen;
 
         processedRows.push({
             centro,
-            cliente: row[colIdx.nomCliente] || row[colIdx.nombre] || 'Sin Cliente',
+            cliente: nameRaw || 'Sin Cliente',
             lineaNegocio: linea,
             estado,
             venta,
@@ -387,7 +414,19 @@ function processData(data) {
     });
 
     const period = extractPeriodFromFileName(data.fileName);
-    AppState.processedData = { period, rows: processedRows, totals: { totalVenta: totalV, totalCoste: totalC, totalMargen: totalM, totalPresVenta: totalPV, totalPresCoste: totalPC }, byCenter, byLineaNegocio: byLinea };
+    AppState.processedData = {
+        period,
+        rows: processedRows,
+        totals: {
+            totalVenta: totalV,
+            totalCoste: totalC,
+            totalMargen: totalM,
+            totalPresVenta: totalPV,
+            totalPresCoste: totalPC
+        },
+        byCenter,
+        byLineaNegocio: byLinea
+    };
 
     calculateYoY(AppState.processedData);
     calculateBudgets(AppState.processedData);
@@ -397,22 +436,6 @@ function processData(data) {
     saveToHistory(AppState.processedData);
 }
 
-function calculateYoY(current) {
-    const parts = current.period.split(' ');
-    if (parts.length !== 2) return;
-    const prevPeriod = `${parts[0]} ${parseInt(parts[1]) - 1}`;
-    const prev = AppState.historicalData.find(h => h.period === prevPeriod);
-    if (prev) {
-        AppState.yoyMetrics = { revenueChange: ((current.totals.totalVenta - prev.totals.totalVenta) / prev.totals.totalVenta) * 100, marginChange: ((current.totals.totalMargen - prev.totals.totalMargen) / prev.totals.totalMargen) * 100, available: true };
-    } else AppState.yoyMetrics.available = false;
-}
-
-function calculateBudgets(current) {
-    const pv = current.totals.totalPresVenta, pm = pv - current.totals.totalPresCoste;
-    if (pv > 0) AppState.budgetMetrics = { revenueAchievement: (current.totals.totalVenta / pv) * 100, marginAchievement: (current.totals.totalMargen / pm) * 100, available: true };
-    else AppState.budgetMetrics.available = false;
-}
-
 function parseNumber(v) {
     if (v === undefined || v === null || v === '') return 0;
     if (typeof v === 'number') return v;
@@ -420,40 +443,29 @@ function parseNumber(v) {
     let s = String(v).trim();
     if (!s) return 0;
 
-    // Detectar si es un formato contable con paréntesis: (1.234,56)
+    // Detectar signo negativo
     let neg = false;
-    if (s.startsWith('(') && s.endsWith(')')) {
-        neg = true;
-        s = s.replace(/[()]/g, '');
-    } else if (s.endsWith('-')) {
-        neg = true;
-        s = s.slice(0, -1);
-    } else if (s.startsWith('-')) {
-        neg = true;
-        s = s.slice(1);
-    }
+    if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.replace(/[()]/g, ''); }
+    else if (s.endsWith('-')) { neg = true; s = s.slice(0, -1); }
+    else if (s.startsWith('-')) { neg = true; s = s.slice(1); }
 
-    // Limpiar símbolos de moneda y espacios
     s = s.replace(/[€$£\s]/g, '');
 
-    // Lógica para decidir si el separador decimal es coma o punto
-    // Si hay puntos y comas, asumimos formato ES (punto miles, coma decimal)
-    // Ej: 1.234,56 -> 1234.56
-    if (s.includes('.') && s.includes(',')) {
+    const lastComma = s.lastIndexOf(',');
+    const lastDot = s.lastIndexOf('.');
+
+    if (lastComma > lastDot) {
+        // Formato Europeo: 1.234,56
         s = s.replace(/\./g, '').replace(',', '.');
-    }
-    // Si solo hay coma y aparece al final (ej: 1234,56), es decimal
-    else if (s.includes(',') && s.lastIndexOf(',') > s.lastIndexOf('.')) {
-        s = s.replace(/\./g, '').replace(',', '.');
-    }
-    // Si hay múltiples puntos, son separadores de miles (ej: 1.234.567)
-    else if ((s.match(/\./g) || []).length > 1) {
-        s = s.replace(/\./g, '');
+    } else if (lastDot > lastComma) {
+        // Formato Americano: 1,234.56
+        s = s.replace(/,/g, '');
+    } else {
+        if (lastComma !== -1) s = s.replace(',', '.');
     }
 
     const n = parseFloat(s);
-    if (isNaN(n)) return 0;
-    return neg ? -Math.abs(n) : n;
+    return isNaN(n) ? 0 : (neg ? -Math.abs(n) : n);
 }
 
 function extractPeriodFromFileName(f) {

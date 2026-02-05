@@ -109,8 +109,27 @@ function initClientsHubHandlers() {
 function initModalHandlers() {
     const modal = document.getElementById('detailModal');
     const closeBtn = document.getElementById('closeModal');
+    const searchInput = document.getElementById('modalSearch');
+
     if (closeBtn) closeBtn.onclick = () => modal.style.display = 'none';
-    window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
+
+    // Global click to close
+    window.onclick = (e) => {
+        if (e.target == modal) modal.style.display = 'none';
+    };
+
+    // Search functionality
+    if (searchInput) {
+        searchInput.oninput = (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = currentModalRows.filter(r =>
+                (r.centro && r.centro.toLowerCase().includes(term)) ||
+                (r.lineaNegocio && r.lineaNegocio.toLowerCase().includes(term)) ||
+                (r.cliente && r.cliente.toLowerCase().includes(term))
+            );
+            renderModalTable(filtered);
+        };
+    }
 }
 
 function initPdfGlobalHandler() {
@@ -328,9 +347,13 @@ function getColumnIndex(headers, columnName) {
 }
 
 function calculateMarginPercentage(venta, margen) {
-    if (!venta) return 0;
-    let pct = (margen / venta) * 100;
-    return (venta < 0 && margen < 0) ? -Math.abs(pct) : pct;
+    if (!venta || venta === 0) return 0;
+    // Standard margin percentage: (Margen / Venta) * 100
+    // Handle all sign combinations correctly
+    const pct = (margen / venta) * 100;
+    // If both are negative (credit notes), preserve negative percentage
+    // If venta is negative but margen positive (unusual), show positive
+    return pct;
 }
 
 function processData(data) {
@@ -392,10 +415,12 @@ function processData(data) {
         totalPV += presV;
         totalPC += presC;
 
-        if (!byCenter[centro]) byCenter[centro] = { venta: 0, margen: 0, presVenta: 0 };
+        if (!byCenter[centro]) byCenter[centro] = { venta: 0, coste: 0, margen: 0, presVenta: 0, presCoste: 0 };
         byCenter[centro].venta += venta;
+        byCenter[centro].coste += coste;
         byCenter[centro].margen += margen;
         byCenter[centro].presVenta += presV;
+        byCenter[centro].presCoste += presC;
 
         if (!byLinea[linea]) byLinea[linea] = { venta: 0, margen: 0 };
         byLinea[linea].venta += venta;
@@ -479,23 +504,106 @@ function extractPeriodFromFileName(f) {
     return f.replace(/\.[^/.]+$/, '');
 }
 
+function calculateYoY(data) {
+    // Find same period from previous year in historical data
+    const currentPeriod = data.period;
+    if (!currentPeriod) {
+        AppState.yoyMetrics = { revenueChange: 0, marginChange: 0, available: false };
+        return;
+    }
+
+    // Extract month and compare with history
+    const monthMatch = currentPeriod.match(/^(\w+)\s+(\d{4})$/);
+    if (!monthMatch) {
+        AppState.yoyMetrics = { revenueChange: 0, marginChange: 0, available: false };
+        return;
+    }
+
+    const [, month, year] = monthMatch;
+    const prevYear = parseInt(year) - 1;
+    const prevPeriod = `${month} ${prevYear}`;
+
+    const prevData = AppState.historicalData.find(h => h.period === prevPeriod);
+    if (!prevData) {
+        AppState.yoyMetrics = { revenueChange: 0, marginChange: 0, available: false };
+        return;
+    }
+
+    const revChange = prevData.totals.totalVenta !== 0
+        ? ((data.totals.totalVenta - prevData.totals.totalVenta) / Math.abs(prevData.totals.totalVenta)) * 100
+        : 0;
+    const marChange = prevData.totals.totalMargen !== 0
+        ? ((data.totals.totalMargen - prevData.totals.totalMargen) / Math.abs(prevData.totals.totalMargen)) * 100
+        : 0;
+
+    AppState.yoyMetrics = { revenueChange: revChange, marginChange: marChange, available: true };
+}
+
+function calculateBudgets(data) {
+    const totals = data.totals;
+    if (!totals.totalPresVenta || totals.totalPresVenta === 0) {
+        AppState.budgetMetrics = { revenueAchievement: 0, marginAchievement: 0, available: false };
+        return;
+    }
+
+    // Revenue Achievement: (Actual Sales / Budget Sales) * 100
+    const revAchievement = (totals.totalVenta / totals.totalPresVenta) * 100;
+
+    // Margin Achievement: (Actual Margin / Budget Margin) * 100
+    // Budget Margin = Budget Sales - Budget Cost
+    const budgetMargin = totals.totalPresVenta - (totals.totalPresCoste || 0);
+    const marAchievement = budgetMargin !== 0
+        ? (totals.totalMargen / budgetMargin) * 100
+        : 100;
+
+    AppState.budgetMetrics = {
+        revenueAchievement: revAchievement,
+        marginAchievement: marAchievement,
+        available: true
+    };
+}
+
+function refreshNavigation() {
+    // Refresh nav items after client changes
+    renderClientSettingsList();
+}
+
+window.refreshNavigation = refreshNavigation;
+
+
 // ========================================
 // 6. UI Controller
 // ========================================
 function updateKPIs(data) {
-    const set = (id, val) => document.getElementById(id).textContent = val;
+    const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
     set('totalRevenue', formatCurrency(data.totalVenta || data.totalRevenue));
     set('totalCost', formatCurrency(data.totalCoste || data.totalCost));
     set('netMargin', formatCurrency(data.totalMargen || data.netMargin));
-    set('performance', (data.performance || ((data.totalMargen / data.totalVenta) * 100)).toFixed(1) + '%');
+
+    // Calculate performance percentage
+    const perf = data.performance || (data.totalVenta ? ((data.totalMargen / data.totalVenta) * 100) : 0);
+    set('performance', perf.toFixed(1) + '%');
 
     const revY = document.getElementById('revenueYoY'), marY = document.getElementById('marginYoY');
-    if (AppState.yoyMetrics.available) { updateYoYBadge(revY, AppState.yoyMetrics.revenueChange); updateYoYBadge(marY, AppState.yoyMetrics.marginChange); }
-    else { revY.style.display = 'none'; marY.style.display = 'none'; }
+    if (AppState.yoyMetrics.available) {
+        if (revY) updateYoYBadge(revY, AppState.yoyMetrics.revenueChange);
+        if (marY) updateYoYBadge(marY, AppState.yoyMetrics.marginChange);
+    } else {
+        if (revY) revY.style.display = 'none';
+        if (marY) marY.style.display = 'none';
+    }
 
     const revB = document.getElementById('revenueBudget'), marB = document.getElementById('marginBudget');
-    if (AppState.budgetMetrics.available) { updateBudgetBadge(revB, AppState.budgetMetrics.revenueAchievement); updateBudgetBadge(marB, AppState.budgetMetrics.marginAchievement); }
-    else { revB.style.display = 'none'; marB.style.display = 'none'; }
+    if (AppState.budgetMetrics.available) {
+        if (revB) updateBudgetBadge(revB, AppState.budgetMetrics.revenueAchievement);
+        if (marB) updateBudgetBadge(marB, AppState.budgetMetrics.marginAchievement);
+    } else {
+        if (revB) revB.style.display = 'none';
+        if (marB) marB.style.display = 'none';
+    }
 }
 
 function updateYoYBadge(el, v) {
@@ -512,16 +620,21 @@ function updateBudgetBadge(el, v) {
 
 function updateDataTable(rows) {
     const tbody = document.getElementById('dataTableBody');
-    tbody.innerHTML = rows.length ? [...rows].sort((a, b) => b.venta - a.venta).map(row => `
-        <tr class="${row.margenPct < 20 ? 'critical-row' : ''}">
-            <td title="${row.nombre}">${truncateText(row.nombre, 30)}</td>
+    tbody.innerHTML = rows.length ? [...rows].sort((a, b) => b.venta - a.venta).map(row => {
+        const isLow = row.margenPct < 20;
+        return `
+        <tr class="${isLow ? 'critical-row' : ''}">
+            <td title="${row.cliente}">${truncateText(row.cliente, 30)}</td>
             <td><span class="badge badge-center">${truncateText(row.centro, 15)}</span></td>
             <td><span class="badge badge-linea">${truncateText(row.lineaNegocio, 15)}</span></td>
             <td class="text-right" style="color: var(--color-revenue)">${formatCurrency(row.venta)}</td>
             <td class="text-right" style="color: var(--color-cost)">${formatCurrency(row.coste)}</td>
             <td class="text-right" style="color: ${row.margen >= 0 ? 'var(--color-revenue)' : 'var(--color-cost)'}">${formatCurrency(row.margen)}</td>
-            <td class="text-right">${row.margenPct.toFixed(1)}%</td>
-        </tr>`).join('') : '<tr class="empty-state"><td colspan="7">No hay datos</td></tr>';
+            <td class="text-right ${isLow ? 'critical-margin' : ''}">
+                ${isLow ? '⚠️ ' : ''}${row.margenPct.toFixed(1)}%
+            </td>
+        </tr>`;
+    }).join('') : '<tr class="empty-state"><td colspan="7">No hay datos</td></tr>';
     const header = document.querySelector('.table-header h3');
     if (header) header.textContent = `Detalle del Período (${rows.length} registros)`;
 }
@@ -529,7 +642,20 @@ function updateDataTable(rows) {
 function renderAnalysis() {
     const tb = document.getElementById('detailedTableBody');
     if (!tb || !AppState.processedData) return;
-    tb.innerHTML = AppState.processedData.rows.map(r => `<tr><td>${r.centro}</td><td>${r.cliente || r.nombre}</td><td><span class="badge">${r.lineaNegocio}</span></td><td><span class="badge">${r.estado}</span></td><td class="text-right">${formatCurrency(r.venta)}</td><td class="text-right">${formatCurrency(r.coste)}</td><td class="text-right" style="color: ${r.margen >= 0 ? 'var(--color-revenue)' : 'var(--color-cost)'}">${formatCurrency(r.margen)}</td><td class="text-right">${r.margenPct.toFixed(1)}%</td></tr>`).join('');
+    tb.innerHTML = AppState.processedData.rows.map(r => {
+        const isLow = r.margenPct < 20;
+        return `
+        <tr class="${isLow ? 'critical-row' : ''}">
+            <td>${r.centro}</td>
+            <td>${r.cliente}</td>
+            <td><span class="badge">${r.lineaNegocio}</span></td>
+            <td><span class="badge">${r.estado}</span></td>
+            <td class="text-right">${formatCurrency(r.venta)}</td>
+            <td class="text-right">${formatCurrency(r.coste)}</td>
+            <td class="text-right" style="color: ${r.margen >= 0 ? 'var(--color-revenue)' : 'var(--color-cost)'}">${formatCurrency(r.margen)}</td>
+            <td class="text-right ${isLow ? 'critical-margin' : ''}">${isLow ? '⚠️ ' : ''}${r.margenPct.toFixed(1)}%</td>
+        </tr>`;
+    }).join('');
     const summ = document.getElementById('reportSummary');
     if (summ) summ.innerHTML = generateSmartSummary(AppState.processedData);
 }
@@ -615,13 +741,57 @@ function renderClients() {
 
 function renderClientList(cs) {
     const l = document.getElementById('clientsList');
-    l.innerHTML = cs.map(c => `<div class="client-item" onclick="selectClient('${c.name.replace(/'/g, "\\'")}')"><div class="client-item-header"><span>${truncateText(c.name, 25)}</span><strong>${formatCurrency(c.totalVenta)}</strong></div><div class="client-metrics"><span>${c.centers.length} Centros</span><span style="color:${c.totalMargen >= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'}">${calculateMarginPercentage(c.totalVenta, c.totalMargen).toFixed(1)}%</span></div></div>`).join('');
+    l.innerHTML = cs.map(c => {
+        const mPct = calculateMarginPercentage(c.totalVenta, c.totalMargen);
+        const isLow = mPct < 20;
+        return `
+        <div class="client-item ${isLow ? 'critical-row' : ''}" onclick="selectClient('${c.name.replace(/'/g, "\\'")}')">
+            <div class="client-item-header">
+                <span>${truncateText(c.name, 25)}</span>
+                <strong>${formatCurrency(c.totalVenta)}</strong>
+            </div>
+            <div class="client-metrics">
+                <span>${c.centers.length} Centros</span>
+                <span style="color:${c.totalMargen >= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'}" class="${isLow ? 'critical-margin' : ''}">
+                    ${isLow ? '⚠️ ' : ''}${mPct.toFixed(1)}%
+                </span>
+            </div>
+        </div>`;
+    }).join('');
 }
 
 window.selectClient = (name) => {
     const c = currentClientsData.find(cl => cl.name === name); if (!c) return;
     const v = document.getElementById('clientDetailView');
-    v.innerHTML = `<div class="client-detail-header"><h2>${c.name}</h2><div class="text-right"><h3>${formatCurrency(c.totalVenta)}</h3><span>MG: ${calculateMarginPercentage(c.totalVenta, c.totalMargen).toFixed(1)}%</span></div></div><table class="modal-table"><thead><tr><th>Centro</th><th class="text-right">Venta</th><th class="text-right">Margen</th></tr></thead><tbody>${c.centers.map(r => `<tr><td>${r.centro}</td><td class="text-right">${formatCurrency(r.venta)}</td><td class="text-right">${formatCurrency(r.margen)}</td></tr>`).join('')}</tbody></table>`;
+    const mTotal = calculateMarginPercentage(c.totalVenta, c.totalMargen);
+    v.innerHTML = `
+        <div class="client-detail-header ${mTotal < 20 ? 'critical-row' : ''}" style="padding:15px; border-radius:8px;">
+            <h2>${c.name}</h2>
+            <div class="text-right">
+                <h3>${formatCurrency(c.totalVenta)}</h3>
+                <span class="${mTotal < 20 ? 'critical-margin' : ''}">${mTotal < 20 ? '⚠️ ' : ''}MG: ${mTotal.toFixed(1)}%</span>
+            </div>
+        </div>
+        <table class="modal-table">
+            <thead>
+                <tr>
+                    <th>Centro</th>
+                    <th class="text-right">Venta</th>
+                    <th class="text-right">Margen</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${c.centers.map(r => {
+        const isLow = r.margenPct < 20;
+        return `
+                    <tr class="${isLow ? 'critical-row' : ''}">
+                        <td>${r.centro}</td>
+                        <td class="text-right">${formatCurrency(r.venta)}</td>
+                        <td class="text-right ${isLow ? 'critical-margin' : ''}">${isLow ? '⚠️ ' : ''}${r.margenPct.toFixed(1)}%</td>
+                    </tr>`;
+    }).join('')}
+            </tbody>
+        </table>`;
 };
 
 function initClientManager() {
@@ -726,22 +896,49 @@ function initDynamicClientChart(id) {
 // ========================================
 // 10. Interactivity (Modals)
 // ========================================
+// Store current modal rows for searching
+let currentModalRows = [];
+
+function renderModalTable(rows) {
+    const tableBody = document.getElementById('modalTableBody');
+    tableBody.innerHTML = rows.map(r => `
+        <tr>
+            <td>${r.centro || r.lineaNegocio}</td>
+            <td class="text-right">${formatCurrency(r.venta)}</td>
+            <td class="text-right">${r.presVenta ? formatCurrency(r.presVenta) : '-'}</td>
+            <td class="text-right ${r.margen >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(r.margen)}</td>
+        </tr>
+    `).join('');
+}
+
 function showDetailModal(center) {
     const modal = document.getElementById('detailModal'), d = AppState.processedData?.byCenter[center]; if (!d) return;
+    const searchInput = document.getElementById('modalSearch');
+
     document.getElementById('modalTitle').textContent = `Detalle: ${center}`;
+    if (searchInput) searchInput.value = '';
+
     document.getElementById('modalKPIs').innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(d.venta)}</strong></div><div class="kpi-card"><span>Margen (€)</span><strong>${formatCurrency(d.margen)}</strong></div><div class="kpi-card"><span>Rendimiento</span><strong>${calculateMarginPercentage(d.venta, d.margen).toFixed(1)}%</strong></div>`;
-    const rows = AppState.processedData.rows.filter(r => r.centro === center);
-    document.getElementById('modalTableBody').innerHTML = rows.map(r => `<tr><td>${r.lineaNegocio}</td><td class="text-right">${formatCurrency(r.venta)}</td><td class="text-right">${r.presVenta ? formatCurrency(r.presVenta) : '-'}</td><td class="text-right">${formatCurrency(r.margen)}</td></tr>`).join('');
+
+    currentModalRows = AppState.processedData.rows.filter(r => r.centro === center);
+    renderModalTable(currentModalRows);
+
     modal.style.display = 'block';
 }
 
 function showBusinessLineDetail(line) {
     const modal = document.getElementById('detailModal'); if (!AppState.processedData) return;
+    const searchInput = document.getElementById('modalSearch');
+
     document.getElementById('modalTitle').textContent = `Línea: ${line}`;
-    const rows = AppState.processedData.rows.filter(r => r.lineaNegocio === line);
-    const tots = rows.reduce((a, r) => { a.v += r.venta; a.m += r.margen; return a; }, { v: 0, m: 0 });
+    if (searchInput) searchInput.value = '';
+
+    currentModalRows = AppState.processedData.rows.filter(r => r.lineaNegocio === line);
+    const tots = currentModalRows.reduce((a, r) => { a.v += r.venta; a.m += r.margen; return a; }, { v: 0, m: 0 });
+
     document.getElementById('modalKPIs').innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(tots.v)}</strong></div><div class="kpi-card"><span>Margen</span><strong>${formatCurrency(tots.m)}</strong></div><div class="kpi-card"><span>Rendimiento</span><strong>${calculateMarginPercentage(tots.v, tots.m).toFixed(1)}%</strong></div>`;
-    document.getElementById('modalTableBody').innerHTML = rows.map(r => `<tr><td>${r.centro}</td><td class="text-right">${formatCurrency(r.venta)}</td><td class="text-right">${formatCurrency(r.presVenta)}</td><td class="text-right">${formatCurrency(r.margen)}</td></tr>`).join('');
+
+    renderModalTable(currentModalRows);
     modal.style.display = 'block';
 }
 

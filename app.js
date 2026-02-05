@@ -1,6 +1,6 @@
 /* ========================================
    CierresPro - Professional CRM & Analytics
-   Reorganized & Optimized Version 1.3.1
+   Reorganized & Optimized Version 1.4.0
    ======================================== */
 
 // ========================================
@@ -248,15 +248,18 @@ function initUploadHandlers() {
         });
     }
 
-    document.getElementById('filterCentro').addEventListener('change', filterData);
-    document.getElementById('filterLinea').addEventListener('change', filterData);
-    document.getElementById('filterEstado').addEventListener('change', filterData);
-    document.getElementById('filterLowPerf').addEventListener('change', filterData);
-    document.getElementById('clearFiltersBtn').addEventListener('click', () => {
-        document.getElementById('filterCentro').value = '';
-        document.getElementById('filterLinea').value = '';
-        document.getElementById('filterEstado').value = '';
-        document.getElementById('filterLowPerf').checked = false;
+    document.getElementById('filterCliente')?.addEventListener('change', filterData);
+    document.getElementById('filterCentro')?.addEventListener('change', filterData);
+    document.getElementById('filterLinea')?.addEventListener('change', filterData);
+    document.getElementById('filterEstado')?.addEventListener('change', filterData);
+    document.getElementById('filterLowPerf')?.addEventListener('change', filterData);
+    document.getElementById('clearFiltersBtn')?.addEventListener('click', () => {
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        setVal('filterCliente', '');
+        setVal('filterCentro', '');
+        setVal('filterLinea', '');
+        setVal('filterEstado', '');
+        const lp = document.getElementById('filterLowPerf'); if (lp) lp.checked = false;
         filterData();
     });
 
@@ -690,18 +693,34 @@ function showToast(m, t = 'info') {
 // ========================================
 function populateFilters(rows) {
     const getU = (key) => [...new Set(rows.map(r => r[key]).filter(Boolean))].sort();
-    const fill = (id, opts) => {
-        const s = document.getElementById(id), cur = s.value;
-        s.innerHTML = '<option value="">Todos</option>' + opts.map(o => `<option value="${o}">${o}</option>`).join('');
+    const fill = (id, opts, label = 'Todos') => {
+        const s = document.getElementById(id);
+        if (!s) return;
+        const cur = s.value;
+        s.innerHTML = `<option value="">${label}</option>` + opts.map(o => `<option value="${o}">${o}</option>`).join('');
         s.value = opts.includes(cur) ? cur : '';
     };
-    fill('filterCentro', getU('centro')); fill('filterLinea', getU('lineaNegocio')); fill('filterEstado', getU('estado'));
+    fill('filterCliente', getU('cliente'), 'Todos');
+    fill('filterCentro', getU('centro'), 'Todos');
+    fill('filterLinea', getU('lineaNegocio'), 'Todas');
+    fill('filterEstado', getU('estado'), 'Todos');
 }
 
 function filterData() {
     if (!AppState.processedData) return;
-    const c = document.getElementById('filterCentro').value, l = document.getElementById('filterLinea').value, e = document.getElementById('filterEstado').value, lp = document.getElementById('filterLowPerf').checked;
-    const fil = AppState.processedData.rows.filter(r => (!c || r.centro === c) && (!l || r.lineaNegocio === l) && (!e || r.estado === e) && (!lp || r.margenPct < 20));
+    const cli = document.getElementById('filterCliente')?.value || '';
+    const c = document.getElementById('filterCentro')?.value || '';
+    const l = document.getElementById('filterLinea')?.value || '';
+    const e = document.getElementById('filterEstado')?.value || '';
+    const lp = document.getElementById('filterLowPerf')?.checked || false;
+
+    const fil = AppState.processedData.rows.filter(r =>
+        (!cli || r.cliente === cli) &&
+        (!c || r.centro === c) &&
+        (!l || r.lineaNegocio === l) &&
+        (!e || r.estado === e) &&
+        (!lp || r.margenPct < 20)
+    );
     const tots = fil.reduce((a, r) => { a.totalVenta += r.venta; a.totalCoste += r.coste; a.totalMargen += r.margen; return a; }, { totalVenta: 0, totalCoste: 0, totalMargen: 0 });
     updateDashboard({ rows: fil, totals: tots });
 }
@@ -866,7 +885,19 @@ function initCharts() {
                 borderWidth: 1,
                 padding: 12,
                 displayColors: true,
-                boxPadding: 6
+                boxPadding: 6,
+                callbacks: {
+                    label: function (context) {
+                        let label = context.dataset.label || '';
+                        if (label) label += ': ';
+                        if (context.parsed.y !== null && context.parsed.y !== undefined) {
+                            label += formatCurrency(context.chart.config.options.indexAxis === 'y' ? context.parsed.x : context.parsed.y);
+                        } else if (context.parsed !== null && context.parsed !== undefined) {
+                            label += formatCurrency(context.parsed);
+                        }
+                        return label;
+                    }
+                }
             }
         }
     };

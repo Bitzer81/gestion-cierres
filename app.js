@@ -1,6 +1,6 @@
 /* ========================================
    CierresPro - Professional CRM & Analytics
-   Reorganized & Optimized Version 1.4.0
+   Reorganized & Optimized Version 1.4.1
    ======================================== */
 
 // ========================================
@@ -375,12 +375,15 @@ function processData(data) {
     data.rows.forEach(row => {
         if (!row || !row.length) return;
 
-        // Extraer valores básicos (Prioridad a Nom_cliente sobre Nombre)
-        const nameRaw = String(row[colIdx.nomCliente] || row[colIdx.nombre] || '').trim();
+        // Extraer valores básicos - separamos Nom_cliente del Nombre del pedido
+        const nomCliente = String(row[colIdx.nomCliente] || '').trim();
+        const nombrePedido = String(row[colIdx.nombre] || '').trim();
         const centroRaw = String(row[colIdx.nomCentro] || '').trim();
         const codCli = String(row[colIdx.codCliente] || '').trim();
         const codCen = String(row[colIdx.codCentro] || '').trim();
 
+        // Para validación usamos el nombre del cliente o el del pedido
+        const nameRaw = nomCliente || nombrePedido;
         const name = nameRaw.toUpperCase();
         const centro = centroRaw;
         const linea = String(row[colIdx.lineaNegocio] || 'Sin Línea').trim();
@@ -431,8 +434,9 @@ function processData(data) {
 
         processedRows.push({
             codCliente: codCli,
+            nomCliente: nomCliente || 'Sin Cliente',
             centro,
-            cliente: nameRaw || 'Sin Cliente',
+            cliente: nombrePedido || nameRaw || 'Sin Cliente',
             lineaNegocio: linea,
             estado,
             venta,
@@ -700,7 +704,7 @@ function populateFilters(rows) {
         s.innerHTML = `<option value="">${label}</option>` + opts.map(o => `<option value="${o}">${o}</option>`).join('');
         s.value = opts.includes(cur) ? cur : '';
     };
-    fill('filterCliente', getU('cliente'), 'Todos');
+    fill('filterCliente', getU('nomCliente'), 'Todos');
     fill('filterCentro', getU('centro'), 'Todos');
     fill('filterLinea', getU('lineaNegocio'), 'Todas');
     fill('filterEstado', getU('estado'), 'Todos');
@@ -715,7 +719,7 @@ function filterData() {
     const lp = document.getElementById('filterLowPerf')?.checked || false;
 
     const fil = AppState.processedData.rows.filter(r =>
-        (!cli || r.cliente === cli) &&
+        (!cli || r.nomCliente === cli) &&
         (!c || r.centro === c) &&
         (!l || r.lineaNegocio === l) &&
         (!e || r.estado === e) &&

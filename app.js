@@ -1,6 +1,6 @@
 /* ========================================
    CierresPro - Professional CRM & Analytics
-   Reorganized & Optimized Version 1.2.6
+   Reorganized & Optimized Version 1.2.7
    ======================================== */
 
 // ========================================
@@ -575,16 +575,24 @@ window.refreshNavigation = refreshNavigation;
 // 6. UI Controller
 // ========================================
 function updateKPIs(data) {
+    // Handle both direct totals and nested totals object
+    const totals = data.totals || data;
+
     const set = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.textContent = val;
     };
-    set('totalRevenue', formatCurrency(data.totalVenta || data.totalRevenue));
-    set('totalCost', formatCurrency(data.totalCoste || data.totalCost));
-    set('netMargin', formatCurrency(data.totalMargen || data.netMargin));
+
+    const venta = totals.totalVenta || totals.totalRevenue || 0;
+    const coste = totals.totalCoste || totals.totalCost || 0;
+    const margen = totals.totalMargen || totals.netMargin || 0;
+
+    set('totalRevenue', formatCurrency(venta));
+    set('totalCost', formatCurrency(coste));
+    set('netMargin', formatCurrency(margen));
 
     // Calculate performance percentage
-    const perf = data.performance || (data.totalVenta ? ((data.totalMargen / data.totalVenta) * 100) : 0);
+    const perf = totals.performance || (venta ? ((margen / venta) * 100) : 0);
     set('performance', perf.toFixed(1) + '%');
 
     const revY = document.getElementById('revenueYoY'), marY = document.getElementById('marginYoY');

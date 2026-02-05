@@ -323,6 +323,7 @@ function processData(data) {
     if (colIdx.venta === -1 || colIdx.coste === -1) {
         throw new Error('No se han encontrado las columnas de "Venta" o "Coste". Revisa la configuración o usa la plantilla.');
     }
+    let totalV = 0, totalC = 0, totalM = 0, totalPV = 0, totalPC = 0;
     const byCenter = {}, byLinea = {}, byEstado = {}, processedRows = [];
 
     data.rows.forEach(row => {

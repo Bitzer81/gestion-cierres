@@ -784,3 +784,75 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
 }
+/* ========================================
+   14. Clients Hub Styles
+   ======================================== */
+.clients-ranking-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border-color);
+    transition: all var(--transition-base);
+    cursor: pointer;
+}
+
+.ranking-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.ranking-item:last-child {
+    border-bottom: none;
+}
+
+.ranking-pos {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+}
+
+.ranking-item:nth-child(1) .ranking-pos { background: #ffd700; color: #000; }
+.ranking-item:nth-child(2) .ranking-pos { background: #c0c0c0; color: #000; }
+.ranking-item:nth-child(3) .ranking-pos { background: #cd7f32; color: #000; }
+
+.ranking-info {
+    flex: 1;
+}
+
+.ranking-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    display: block;
+}
+
+.ranking-meta {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.ranking-value {
+    text-align: right;
+}
+
+.ranking-amount {
+    display: block;
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+.ranking-pct {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}

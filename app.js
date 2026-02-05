@@ -87,7 +87,24 @@ document.addEventListener('DOMContentLoaded', () => {
     loadHistoryFromStorage();
     initModalHandlers();
     initPdfGlobalHandler();
+    initClientsHubHandlers();
 });
+
+function initClientsHubHandlers() {
+    const btn = document.getElementById('clientsHubBtn');
+    const modal = document.getElementById('clientsHubModal');
+    const closeBtn = document.getElementById('closeClientsHub');
+
+    if (btn) btn.addEventListener('click', openClientsHub);
+    if (closeBtn) closeBtn.onclick = () => modal.style.display = 'none';
+
+    // Extender el handler de window.onclick existente
+    const oldWinClick = window.onclick;
+    window.onclick = (e) => {
+        if (oldWinClick) oldWinClick(e);
+        if (e.target == modal) modal.style.display = 'none';
+    };
+}
 
 function initModalHandlers() {
     const modal = document.getElementById('detailModal');
@@ -740,6 +757,56 @@ async function exportToPDF(id, name) {
     } catch (e) { showToast('Error al exportar PDF', 'error'); }
 }
 
+function openClientsHub() {
+    if (!AppState.processedData) return showToast('Primero carga los datos del período', 'warning');
+
+    const d = AppState.processedData.rows;
+    const map = {};
+    d.forEach(r => {
+        const n = r.cliente || r.nombre || 'Desconocido';
+        if (!map[n]) map[n] = { name: n, venta: 0, margen: 0, centers: 0 };
+        map[n].venta += r.venta;
+        map[n].margen += r.margen;
+        map[n].centers++;
+    });
+
+    const ranking = Object.values(map)
+        .sort((a, b) => b.venta - a.venta)
+        .slice(0, 10);
+
+    const list = document.getElementById('clientsHubRanking');
+    const totalVenta = AppState.processedData.totals.totalVenta;
+
+    list.innerHTML = ranking.map((c, i) => `
+        <div class="ranking-item" onclick="viewClientDetailFromHub('${c.name.replace(/'/g, "\\'")}')">
+            <div class="ranking-pos">${i + 1}</div>
+            <div class="ranking-info">
+                <span class="ranking-name">${c.name}</span>
+                <span class="ranking-meta">${c.centers} centros activos</span>
+            </div>
+            <div class="ranking-value">
+                <span class="ranking-amount">${formatCurrency(c.venta)}</span>
+                <span class="ranking-pct">${((c.venta / totalVenta) * 100).toFixed(1)}% del total</span>
+            </div>
+        </div>
+    `).join('');
+
+    document.getElementById('clientsHubModal').style.display = 'block';
+}
+
+window.viewClientDetailFromHub = (name) => {
+    document.getElementById('clientsHubModal').style.display = 'none';
+    window.navigateToSection('clients');
+    setTimeout(() => {
+        window.selectClient(name);
+        const searchInput = document.getElementById('clientSearch');
+        if (searchInput) {
+            searchInput.value = name;
+            searchInput.dispatchEvent(new Event('input'));
+        }
+    }, 100);
+};
+
 // Global Exports
 window.exportData = exportData;
 window.exportHistory = exportHistory;
@@ -747,3 +814,4 @@ window.importHistory = importHistory;
 window.renderClients = renderClients;
 window.renderAnalysis = renderAnalysis;
 window.saveSettings = saveSettings;
+window.openClientsHub = openClientsHub;

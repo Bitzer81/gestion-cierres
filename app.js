@@ -872,6 +872,9 @@ function renderClientDashboard(name, id) {
 // 9. Chart Controller
 // ========================================
 function initCharts() {
+    // Registrar plugin de datalabels
+    Chart.register(ChartDataLabels);
+
     // Chart.js Global Defaults for Premium Light Theme
     Chart.defaults.color = '#64748b';
     Chart.defaults.font.family = "'Inter', sans-serif";
@@ -890,6 +893,16 @@ function initCharts() {
         'Pendiente': { bg: 'rgba(249, 115, 22, 0.85)', border: '#ea580c' },
         'Abierto': { bg: 'rgba(139, 92, 246, 0.85)', border: '#7c3aed' },
         'default': { bg: 'rgba(100, 116, 139, 0.85)', border: '#475569' }
+    };
+
+    // Función para formatear valores en K€
+    const formatK = (value) => {
+        if (Math.abs(value) >= 1000000) {
+            return (value / 1000000).toFixed(1) + 'M€';
+        } else if (Math.abs(value) >= 1000) {
+            return (value / 1000).toFixed(0) + 'K€';
+        }
+        return value.toFixed(0) + '€';
     };
 
     const commonOptions = {
@@ -933,6 +946,9 @@ function initCharts() {
                         return label;
                     }
                 }
+            },
+            datalabels: {
+                display: false // Por defecto desactivado, se activa por gráfica
             }
         }
     };
@@ -996,7 +1012,7 @@ function initCharts() {
         }
     });
 
-    // 2. Ventas por Línea de Negocio - Enhanced Doughnut
+    // 2. Ventas por Línea de Negocio - Enhanced Doughnut with values
     AppState.charts.distribution = new Chart(document.getElementById('costDistributionChart'), {
         type: 'doughnut',
         data: {
@@ -1050,6 +1066,14 @@ function initCharts() {
                             return `${context.label}: ${formatCurrency(value)} (${pct}%)`;
                         }
                     }
+                },
+                datalabels: {
+                    display: true,
+                    color: '#ffffff',
+                    font: { weight: 'bold', size: 11 },
+                    formatter: (value) => formatK(value),
+                    anchor: 'center',
+                    align: 'center'
                 }
             },
             onClick: (e, els) => { if (els.length) showBusinessLineDetail(AppState.charts.distribution.data.labels[els[0].index]); }
@@ -1090,6 +1114,14 @@ function initCharts() {
                             return `${context.label}: ${formatCurrency(value)} (${pct}%)`;
                         }
                     }
+                },
+                datalabels: {
+                    display: true,
+                    color: '#ffffff',
+                    font: { weight: 'bold', size: 11 },
+                    formatter: (value) => formatK(value),
+                    anchor: 'center',
+                    align: 'center'
                 }
             },
             onClick: (e, els) => { if (els.length) showEstadoDetail(AppState.charts.byEstado.data.labels[els[0].index]); }
@@ -1124,7 +1156,16 @@ function initCharts() {
             indexAxis: 'y',
             plugins: {
                 ...commonOptions.plugins,
-                legend: { display: false }
+                legend: { display: false },
+                datalabels: {
+                    display: true,
+                    color: '#ffffff',
+                    font: { weight: 'bold', size: 11 },
+                    formatter: (value) => formatK(value),
+                    anchor: 'end',
+                    align: 'start',
+                    offset: -4
+                }
             },
             scales: {
                 x: {

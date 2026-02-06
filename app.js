@@ -2,7 +2,6 @@
    CierresPro - Professional CRM & Analytics
    Reorganized & Optimized Version 1.5.0
    ======================================== */
-alert("Cargando App.js...");
 
 
 // ========================================
@@ -1671,14 +1670,14 @@ window.insertTemplate = (key) => {
         // Simple Top lists logic if needed (can be enhanced)
         if (key === 'topClients' && currentClientsData.length) {
             const top5 = currentClientsData.slice(0, 5).map(c =>
-                - : (Mg: %)
+                `- ${c.name}: ${formatCurrency(c.totalVenta)} (Mg: ${calculateMarginPercentage(c.totalVenta, c.totalMargen).toFixed(1)}%)`
             ).join('\n');
             text = text.replace('[LISTA_TOP_CLIENTES]', top5);
         }
 
         if (key === 'issues' && d.rows) {
-            const issues = d.rows.filter(r => r.margenPct < 20 && r.venta > 1000).slice(0, 5)
-                .map(r => -  (): Mg %)
+            const issues = d.rows.filter(r => r.margenPct < 20 && r.venta > 1000).slice(0, 5) // Low margin high volume
+                .map(r => `- ${r.nombre || r.cliente} (${formatCurrency(r.venta)}): Mg ${r.margenPct}%`)
                 .join('\n');
             text = text.replace('[LISTA_BAJO_MARGEN]', issues || 'No se detectaron incidencias mayores.');
         }
@@ -1730,7 +1729,6 @@ window.exportReportPDF = () => {
 // 15. Initialization
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
-    alert("Inicializando sistema...");
     console.log('Initializing CierresPro...');
 
     // Initialize Navigation

@@ -115,6 +115,9 @@ function updateGoogleStatus(connected) {
 }
 
 function checkAuthStatus() {
+    // Check if gapi client is fully loaded
+    if (!gapi.client) return;
+
     // Simple check if token exists
     const token = gapi.client.getToken();
     updateGoogleStatus(!!token);

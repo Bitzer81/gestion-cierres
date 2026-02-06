@@ -9,28 +9,6 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- DIAGNOSTIC SCRIPT: Error Reporting -->
-    <script>
-        window.onerror = function (msg, url, line, col, error) {
-            const div = document.getElementById('debug-console') || document.createElement('div');
-            div.id = 'debug-console';
-            div.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:rgba(200,0,0,0.9);color:white;padding:10px;z-index:9999;font-family:monospace;font-size:14px;';
-            div.innerHTML += `<div>❌ ERROR: ${msg} <br><small>${url}:${line}:${col}</small></div>`;
-            document.body.appendChild(div);
-            return false;
-        };
-        window.addEventListener('unhandledrejection', function (event) {
-            const div = document.getElementById('debug-console') || document.createElement('div');
-            div.id = 'debug-console';
-            div.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:rgba(200,0,0,0.9);color:white;padding:10px;z-index:9999;font-family:monospace;font-size:14px;';
-            div.innerHTML += `<div>⚠️ PROMISE ERROR: ${event.reason}</div>`;
-            document.body.appendChild(div);
-        });
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("DOM Loaded - Diagnostics Active");
-        });
-    </script>
-
     <!-- Google API Scripts -->
     <script async defer src="https://apis.google.com/js/api.js"
         onload="if(window.initGoogle) window.initGoogle()"></script>

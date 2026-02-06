@@ -1723,3 +1723,37 @@ window.exportReportPDF = () => {
     showToast('Informe descargado', 'success');
 };
 
+
+// ========================================
+// 15. Initialization
+// ========================================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Initializing CierresPro...');
+    
+    // Initialize Navigation
+    if(typeof initNavigation === 'function') {
+        initNavigation();
+    } else {
+        console.error('initNavigation function not found');
+    }
+    
+    // Load History
+    if(typeof loadHistoryFromStorage === 'function') {
+        loadHistoryFromStorage();
+    }
+    
+    // Load Settings
+    if(typeof loadSettings === 'function') {
+        loadSettings();
+    }
+    
+    // Initialize Google Drive (loaded via script tag onload, but double check)
+    if(window.initGoogle) {
+        // window.initGoogle(); // Already called by script onload, but safe to call if needed? No, let's leave it to the script tag.
+    }
+    
+    // Default to Dashboard
+    if(window.navigateToSection) {
+        window.navigateToSection('dashboard');
+    }
+});

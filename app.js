@@ -1,7 +1,9 @@
 ﻿/* ========================================
    CierresPro - Professional CRM & Analytics
-   Reorganized & Optimized Version 1.4.1
+   Reorganized & Optimized Version 1.5.0
    ======================================== */
+alert("Cargando App.js...");
+
 
 // ========================================
 // 1. Data Store (State Management)
@@ -1728,6 +1730,7 @@ window.exportReportPDF = () => {
 // 15. Initialization
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
+    alert("Inicializando sistema...");
     console.log('Initializing CierresPro...');
 
     // Initialize Navigation

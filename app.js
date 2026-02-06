@@ -764,18 +764,73 @@ function updateDashboard(data) {
 // 8. Client Modules
 // ========================================
 let currentClientsData = [];
+
 function renderClients() {
-    const d = AppState.processedData?.rows; if (!d) return;
+    const d = AppState.processedData?.rows;
+    if (!d || !d.length) {
+        const l = document.getElementById('clientsList');
+        if (l) l.innerHTML = '<div class="empty-state-small">No hay datos cargados</div>';
+        return;
+    }
+
     const map = {};
     d.forEach(r => {
-        const n = r.cliente || r.nombre || 'Desconocido';
-        if (!map[n]) map[n] = { name: n, centers: [], totalVenta: 0, totalMargen: 0 };
-        map[n].centers.push(r); map[n].totalVenta += r.venta; map[n].totalMargen += r.margen;
+        // Usar el campo correcto: nomCliente tiene prioridad
+        const n = r.nomCliente || r.cliente || r.nombre || 'Sin nombre';
+        if (n === 'Sin nombre' || !n.trim()) return;
+
+        if (!map[n]) map[n] = {
+            name: n,
+            centers: new Map(), // Usar Map para evitar duplicados de centros
+            totalVenta: 0,
+            totalMargen: 0,
+            totalCoste: 0,
+            rowCount: 0
+        };
+
+        // Agregar centro único
+        const centroName = r.centro || r.nomCentro || 'Sin centro';
+        if (!map[n].centers.has(centroName)) {
+            map[n].centers.set(centroName, {
+                name: centroName,
+                venta: 0,
+                coste: 0,
+                margen: 0,
+                lineaNegocio: r.lineaNegocio || '-',
+                estado: r.estado || '-'
+            });
+        }
+        const centro = map[n].centers.get(centroName);
+        centro.venta += r.venta || 0;
+        centro.coste += r.coste || 0;
+        centro.margen += r.margen || 0;
+
+        map[n].totalVenta += r.venta || 0;
+        map[n].totalMargen += r.margen || 0;
+        map[n].totalCoste += r.coste || 0;
+        map[n].rowCount++;
     });
-    currentClientsData = Object.values(map).sort((a, b) => b.totalVenta - a.totalVenta);
+
+    // Convertir centers Map a Array y calcular margenPct
+    currentClientsData = Object.values(map).map(c => ({
+        ...c,
+        centers: Array.from(c.centers.values()).map(ctr => ({
+            ...ctr,
+            margenPct: ctr.venta > 0 ? (ctr.margen / ctr.venta) * 100 : 0
+        })).sort((a, b) => b.venta - a.venta)
+    })).sort((a, b) => b.totalVenta - a.totalVenta);
+
     renderClientList(currentClientsData);
+
     const s = document.getElementById('clientSearch');
-    if (s) s.oninput = (e) => renderClientList(currentClientsData.filter(c => c.name.toLowerCase().includes(e.target.value.toLowerCase())));
+    if (s) {
+        s.value = ''; // Reset search
+        s.oninput = (e) => renderClientList(
+            currentClientsData.filter(c =>
+                c.name.toLowerCase().includes(e.target.value.toLowerCase())
+            )
+        );
+    }
 }
 
 function renderClientList(cs) {
@@ -800,37 +855,75 @@ function renderClientList(cs) {
 }
 
 window.selectClient = (name) => {
-    const c = currentClientsData.find(cl => cl.name === name); if (!c) return;
+    const c = currentClientsData.find(cl => cl.name === name);
+    if (!c) return;
+
     const v = document.getElementById('clientDetailView');
     const mTotal = calculateMarginPercentage(c.totalVenta, c.totalMargen);
+    const isLowTotal = mTotal < 20;
+
     v.innerHTML = `
-        <div class="client-detail-header ${mTotal < 20 ? 'critical-row' : ''}" style="padding:15px; border-radius:8px;">
-            <h2>${c.name}</h2>
-            <div class="text-right">
-                <h3>${formatCurrency(c.totalVenta)}</h3>
-                <span class="${mTotal < 20 ? 'critical-margin' : ''}">${mTotal < 20 ? '⚠️ ' : ''}MG: ${mTotal.toFixed(1)}%</span>
+        <div class="client-detail-header" style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--bg-tertiary); border-radius: 12px; margin-bottom: 20px;">
+            <div>
+                <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-primary);">👤 ${c.name}</h2>
+                <span style="color: var(--text-muted); font-size: 0.9rem;">${c.centers.length} centros • ${c.rowCount || c.centers.length} registros</span>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.3rem; font-weight: 700; color: var(--accent-success);">${formatCurrency(c.totalVenta)}</div>
+                <span class="${isLowTotal ? 'critical-margin' : ''}" style="font-size: 0.95rem;">
+                    ${isLowTotal ? '⚠️ ' : '✅ '}Margen: ${mTotal.toFixed(1)}%
+                </span>
             </div>
         </div>
-        <table class="modal-table">
-            <thead>
-                <tr>
-                    <th>Centro</th>
-                    <th class="text-right">Venta</th>
-                    <th class="text-right">Margen</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${c.centers.map(r => {
+        
+        <div class="client-kpis" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+            <div class="history-stat-item">
+                <div class="label">Venta Total</div>
+                <div class="value">${formatCurrency(c.totalVenta)}</div>
+            </div>
+            <div class="history-stat-item">
+                <div class="label">Coste Total</div>
+                <div class="value negative">${formatCurrency(c.totalCoste)}</div>
+            </div>
+            <div class="history-stat-item">
+                <div class="label">Margen Total</div>
+                <div class="value ${c.totalMargen >= 0 ? 'positive' : 'negative'}">${formatCurrency(c.totalMargen)}</div>
+            </div>
+            <div class="history-stat-item">
+                <div class="label">% Margen</div>
+                <div class="value ${isLowTotal ? 'negative' : 'positive'}">${mTotal.toFixed(1)}%</div>
+            </div>
+        </div>
+        
+        <h3 style="margin-bottom: 12px; color: var(--text-secondary);">📍 Centros de ${c.name}</h3>
+        <div style="overflow-x: auto; max-height: 350px; overflow-y: auto;">
+            <table class="modal-table" style="min-width: 600px;">
+                <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
+                    <tr>
+                        <th>Centro</th>
+                        <th>Línea</th>
+                        <th class="text-right">Venta (€)</th>
+                        <th class="text-right">Coste (€)</th>
+                        <th class="text-right">Margen (€)</th>
+                        <th class="text-right">% Margen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${c.centers.map(r => {
         const isLow = r.margenPct < 20;
         return `
-                    <tr class="${isLow ? 'critical-row' : ''}">
-                        <td>${r.centro}</td>
-                        <td class="text-right">${formatCurrency(r.venta)}</td>
-                        <td class="text-right ${isLow ? 'critical-margin' : ''}">${isLow ? '⚠️ ' : ''}${r.margenPct.toFixed(1)}%</td>
-                    </tr>`;
+                        <tr class="${isLow ? 'critical-row' : ''}">
+                            <td title="${r.name}">${truncateText(r.name, 25)}</td>
+                            <td><span class="badge badge-info">${r.lineaNegocio}</span></td>
+                            <td class="text-right">${formatCurrency(r.venta)}</td>
+                            <td class="text-right" style="color: var(--accent-danger);">${formatCurrency(r.coste)}</td>
+                            <td class="text-right ${r.margen >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(r.margen)}</td>
+                            <td class="text-right ${isLow ? 'critical-margin' : ''}">${isLow ? '⚠️ ' : ''}${r.margenPct.toFixed(1)}%</td>
+                        </tr>`;
     }).join('')}
-            </tbody>
-        </table>`;
+                </tbody>
+            </table>
+        </div>`;
 };
 
 function initClientManager() {

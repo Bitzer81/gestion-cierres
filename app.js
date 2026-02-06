@@ -1057,6 +1057,7 @@ function initCharts() {
     });
 
     // 3. Distribución por Estado - New Doughnut Chart
+    console.log('Inicializando gráfica byEstado en canvas topVentasChart');
     AppState.charts.byEstado = new Chart(document.getElementById('topVentasChart'), {
         type: 'doughnut',
         data: {
@@ -1094,6 +1095,7 @@ function initCharts() {
             onClick: (e, els) => { if (els.length) showEstadoDetail(AppState.charts.byEstado.data.labels[els[0].index]); }
         }
     });
+    console.log('Gráfica byEstado creada:', AppState.charts.byEstado.config.type);
 
     // 4. Margen por Línea de Negocio - Horizontal Bar with gradients
     AppState.charts.margenLinea = new Chart(document.getElementById('topMargenChart'), {
@@ -1173,15 +1175,19 @@ function updateCharts(byL, byC) {
             byEstado[estado].margen += r.margen;
         });
 
+        // Debug: Log unique estados encontrados
+        console.log('Estados únicos encontrados:', Object.keys(byEstado));
+
         const estados = Object.keys(byEstado)
-            .filter(e => e && e.trim() !== '')
-            .sort((a, b) => byEstado[b].venta - byEstado[a].venta);
+            .filter(e => e && e.trim() !== '' && e !== 'Sin Estado')
+            .sort((a, b) => byEstado[b].venta - byEstado[a].venta)
+            .slice(0, 8);
 
         const estadoColorPalette = [
-            'rgba(16, 185, 129, 0.85)',   // Verde - Cerrado
-            'rgba(59, 130, 246, 0.85)',    // Azul - En curso
-            'rgba(249, 115, 22, 0.85)',    // Naranja - Pendiente
-            'rgba(139, 92, 246, 0.85)',    // Púrpura - Abierto
+            'rgba(16, 185, 129, 0.85)',   // Verde
+            'rgba(59, 130, 246, 0.85)',    // Azul
+            'rgba(249, 115, 22, 0.85)',    // Naranja
+            'rgba(139, 92, 246, 0.85)',    // Púrpura
             'rgba(236, 72, 153, 0.85)',    // Rosa
             'rgba(234, 179, 8, 0.85)',     // Amarillo
             'rgba(20, 184, 166, 0.85)',    // Teal

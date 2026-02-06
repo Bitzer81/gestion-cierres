@@ -487,14 +487,18 @@
                 <div class="modal-kpi-grid" id="modalKPIs">
                     <!-- Dynamic KPIs -->
                 </div>
-                <div class="modal-table-container">
-                    <table class="modal-table">
-                        <thead>
+                <div class="modal-table-container" style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                    <table class="modal-table" style="min-width: 900px;">
+                        <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
                             <tr>
-                                <th>Concepto</th>
-                                <th class="text-right">Real (€)</th>
-                                <th class="text-right">Presupuesto (€)</th>
-                                <th class="text-right">Desviación (€)</th>
+                                <th>Cliente</th>
+                                <th>Centro</th>
+                                <th>Línea Negocio</th>
+                                <th>Estado</th>
+                                <th class="text-right">Venta (€)</th>
+                                <th class="text-right">Coste (€)</th>
+                                <th class="text-right">Margen (€)</th>
+                                <th class="text-right">% Margen</th>
                             </tr>
                         </thead>
                         <tbody id="modalTableBody">

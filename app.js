@@ -1252,14 +1252,35 @@ let currentModalRows = [];
 
 function renderModalTable(rows) {
     const tableBody = document.getElementById('modalTableBody');
-    tableBody.innerHTML = rows.map(r => `
-        <tr>
-            <td>${r.centro || r.lineaNegocio}</td>
+    if (!rows || rows.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding: 40px; color: var(--text-muted);">No hay datos para mostrar</td></tr>';
+        return;
+    }
+    tableBody.innerHTML = rows.map(r => {
+        const margenPct = r.margenPct || calculateMarginPercentage(r.venta, r.margen);
+        const isLowMargin = margenPct < 20;
+        return `
+        <tr class="${isLowMargin ? 'critical-row' : ''}">
+            <td title="${r.nomCliente || r.cliente || '-'}">${truncateText(r.nomCliente || r.cliente || '-', 20)}</td>
+            <td title="${r.centro || '-'}">${truncateText(r.centro || '-', 18)}</td>
+            <td><span class="badge badge-info">${r.lineaNegocio || '-'}</span></td>
+            <td><span class="badge ${getEstadoBadgeClass(r.estado)}">${r.estado || '-'}</span></td>
             <td class="text-right">${formatCurrency(r.venta)}</td>
-            <td class="text-right">${r.presVenta ? formatCurrency(r.presVenta) : '-'}</td>
+            <td class="text-right" style="color: var(--accent-danger);">${formatCurrency(r.coste)}</td>
             <td class="text-right ${r.margen >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(r.margen)}</td>
-        </tr>
-    `).join('');
+            <td class="text-right ${isLowMargin ? 'critical-margin' : ''}">${margenPct.toFixed(1)}%</td>
+        </tr>`;
+    }).join('');
+}
+
+function getEstadoBadgeClass(estado) {
+    const classes = {
+        'Cerrado': 'badge-success',
+        'En curso': 'badge-primary',
+        'Abierto': 'badge-info',
+        'Pendiente': 'badge-warning'
+    };
+    return classes[estado] || 'badge-secondary';
 }
 
 function showDetailModal(center) {
@@ -1334,11 +1355,51 @@ function loadHistoryFromStorage() {
 }
 
 function renderHistory() {
-    const g = document.getElementById('historyGrid'); if (!g) return;
-    if (!AppState.historicalData.length) { g.innerHTML = '<div class="empty-state-large"><h3>Sin histórico</h3></div>'; return; }
+    const g = document.getElementById('historyGrid');
+    if (!g) return;
+
+    if (!AppState.historicalData.length) {
+        g.innerHTML = `
+            <div class="empty-state-large" style="grid-column: 1/-1; text-align: center; padding: 60px;">
+                <div style="font-size: 3rem; margin-bottom: 16px;">📊</div>
+                <h3>Sin datos históricos</h3>
+                <p style="color: var(--text-muted); margin-top: 8px;">Carga archivos Excel para generar histórico</p>
+            </div>`;
+        return;
+    }
+
     g.innerHTML = AppState.historicalData.slice().reverse().map((item, i) => {
         const idx = AppState.historicalData.length - 1 - i;
-        return `<div class="history-card" onclick="loadHistoryItem(${idx})"><div class="history-header"><span>${item.period}</span><button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteHistoryItem(${idx})">×</button></div><div class="history-stats"><div>Ventas: ${formatCurrency(item.totals.totalVenta)}</div><div>Margen: ${formatCurrency(item.totals.totalMargen)}</div></div></div>`;
+        const t = item.totals;
+        const margenPct = t.totalVenta > 0 ? ((t.totalMargen / t.totalVenta) * 100).toFixed(1) : 0;
+        const rowCount = item.rows ? item.rows.length : 0;
+
+        return `
+        <div class="history-card" onclick="loadHistoryItem(${idx})">
+            <div class="history-header">
+                <span>📅 ${item.period}</span>
+                <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteHistoryItem(${idx})" title="Eliminar">×</button>
+            </div>
+            <div class="history-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="history-stat-item">
+                    <div class="label">Ventas</div>
+                    <div class="value">${formatCurrency(t.totalVenta)}</div>
+                </div>
+                <div class="history-stat-item">
+                    <div class="label">Costes</div>
+                    <div class="value" style="color: var(--accent-danger);">${formatCurrency(t.totalCoste)}</div>
+                </div>
+                <div class="history-stat-item">
+                    <div class="label">Margen</div>
+                    <div class="value ${t.totalMargen >= 0 ? 'positive' : 'negative'}">${formatCurrency(t.totalMargen)}</div>
+                </div>
+                <div class="history-stat-item">
+                    <div class="label">% Margen</div>
+                    <div class="value ${margenPct < 20 ? 'negative' : 'positive'}">${margenPct}%</div>
+                </div>
+            </div>
+            ${rowCount > 0 ? `<div style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);">📋 ${rowCount} registros</div>` : ''}
+        </div>`;
     }).join('');
 }
 

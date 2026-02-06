@@ -872,41 +872,64 @@ function renderClientDashboard(name, id) {
 // 9. Chart Controller
 // ========================================
 function initCharts() {
-    // Chart.js Global Defaults for Light Theme
+    // Chart.js Global Defaults for Premium Light Theme
     Chart.defaults.color = '#64748b';
     Chart.defaults.font.family = "'Inter', sans-serif";
-    Chart.defaults.scale.grid.color = 'rgba(226, 232, 240, 0.4)';
+    Chart.defaults.font.weight = 500;
+    Chart.defaults.scale.grid.color = 'rgba(226, 232, 240, 0.5)';
 
-    const common = {
+    // Premium color palettes
+    const lineaColors = {
+        gradient: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#f97316', '#eab308'],
+        solid: ['#4f46e5', '#7c3aed', '#9333ea', '#c026d3', '#db2777', '#e11d48', '#ea580c', '#ca8a04']
+    };
+
+    const estadoColors = {
+        'Cerrado': { bg: 'rgba(16, 185, 129, 0.85)', border: '#059669' },
+        'En curso': { bg: 'rgba(59, 130, 246, 0.85)', border: '#2563eb' },
+        'Pendiente': { bg: 'rgba(249, 115, 22, 0.85)', border: '#ea580c' },
+        'Abierto': { bg: 'rgba(139, 92, 246, 0.85)', border: '#7c3aed' },
+        'default': { bg: 'rgba(100, 116, 139, 0.85)', border: '#475569' }
+    };
+
+    const commonOptions = {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+            duration: 800,
+            easing: 'easeOutQuart'
+        },
         plugins: {
             legend: {
                 position: 'bottom',
                 labels: {
                     usePointStyle: true,
-                    padding: 20,
-                    color: '#475569'
+                    pointStyle: 'circle',
+                    padding: 16,
+                    color: '#475569',
+                    font: { size: 12, weight: 500 }
                 }
             },
             tooltip: {
-                backgroundColor: '#ffffff',
+                backgroundColor: 'rgba(255, 255, 255, 0.98)',
                 titleColor: '#0f172a',
+                titleFont: { size: 14, weight: 600 },
                 bodyColor: '#475569',
+                bodyFont: { size: 13 },
                 borderColor: '#e2e8f0',
                 borderWidth: 1,
-                padding: 12,
+                padding: 14,
+                cornerRadius: 10,
                 displayColors: true,
-                boxPadding: 6,
+                boxPadding: 8,
                 callbacks: {
                     label: function (context) {
-                        let label = context.dataset.label || '';
+                        let label = context.dataset.label || context.label || '';
                         if (label) label += ': ';
-                        if (context.parsed.y !== null && context.parsed.y !== undefined) {
-                            label += formatCurrency(context.chart.config.options.indexAxis === 'y' ? context.parsed.x : context.parsed.y);
-                        } else if (context.parsed !== null && context.parsed !== undefined) {
-                            label += formatCurrency(context.parsed);
-                        }
+                        const value = context.chart.config.options.indexAxis === 'y'
+                            ? context.parsed.x
+                            : (context.parsed.y !== undefined ? context.parsed.y : context.parsed);
+                        label += formatCurrency(value);
                         return label;
                     }
                 }
@@ -914,57 +937,274 @@ function initCharts() {
         }
     };
 
-    AppState.charts.monthly = new Chart(document.getElementById('monthlyChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Ingresos', borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', fill: true, tension: 0.4 }, { label: 'Costes', borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', fill: true, tension: 0.4 }] }, options: common });
+    // 1. Evolución Mensual - Line Chart with gradient fill
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    const gradientRevenue = monthlyCtx.createLinearGradient(0, 0, 0, 280);
+    gradientRevenue.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
+    gradientRevenue.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+    const gradientCost = monthlyCtx.createLinearGradient(0, 0, 0, 280);
+    gradientCost.addColorStop(0, 'rgba(239, 68, 68, 0.2)');
+    gradientCost.addColorStop(1, 'rgba(239, 68, 68, 0.02)');
 
-    AppState.charts.distribution = new Chart(document.getElementById('costDistributionChart'), { type: 'doughnut', data: { labels: [], datasets: [{ backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6'], borderWidth: 2, borderColor: '#ffffff' }] }, options: common });
-
-    AppState.charts.topVentas = new Chart(document.getElementById('topVentasChart'), {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Ventas (€)', backgroundColor: '#10b981', borderRadius: 4 }] },
-        options: { ...common, indexAxis: 'y', onClick: (e, els) => { if (els.length) showDetailModal(AppState.charts.topVentas.data.labels[els[0].index]); } }
+    AppState.charts.monthly = new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Ingresos',
+                    borderColor: '#10b981',
+                    backgroundColor: gradientRevenue,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: '#10b981',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2
+                },
+                {
+                    label: 'Costes',
+                    borderColor: '#ef4444',
+                    backgroundColor: gradientCost,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: '#ef4444',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2
+                }
+            ]
+        },
+        options: {
+            ...commonOptions,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(226, 232, 240, 0.6)' },
+                    ticks: {
+                        callback: function (value) {
+                            return (value / 1000).toFixed(0) + 'K €';
+                        }
+                    }
+                },
+                x: { grid: { display: false } }
+            }
+        }
     });
 
-    AppState.charts.topMargen = new Chart(document.getElementById('topMargenChart'), {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Margen (€)', backgroundColor: '#6366f1', borderRadius: 4 }] },
-        options: { ...common, indexAxis: 'y', onClick: (e, els) => { if (els.length) showDetailModal(AppState.charts.topMargen.data.labels[els[0].index]); } }
+    // 2. Ventas por Línea de Negocio - Enhanced Doughnut
+    AppState.charts.distribution = new Chart(document.getElementById('costDistributionChart'), {
+        type: 'doughnut',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: lineaColors.gradient,
+                borderWidth: 3,
+                borderColor: '#ffffff',
+                hoverOffset: 12,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            ...commonOptions,
+            cutout: '65%',
+            plugins: {
+                ...commonOptions.plugins,
+                legend: {
+                    ...commonOptions.plugins.legend,
+                    position: 'right',
+                    labels: {
+                        ...commonOptions.plugins.legend.labels,
+                        generateLabels: function (chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return {
+                                        text: `${label} (${pct}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        strokeStyle: data.datasets[0].backgroundColor[i],
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
+                tooltip: {
+                    ...commonOptions.plugins.tooltip,
+                    callbacks: {
+                        label: function (context) {
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return `${context.label}: ${formatCurrency(value)} (${pct}%)`;
+                        }
+                    }
+                }
+            },
+            onClick: (e, els) => { if (els.length) showBusinessLineDetail(AppState.charts.distribution.data.labels[els[0].index]); }
+        }
     });
 
-    AppState.charts.distribution.options.onClick = (e, els) => { if (els.length) showBusinessLineDetail(AppState.charts.distribution.data.labels[els[0].index]); };
+    // 3. Distribución por Estado - New Doughnut Chart
+    AppState.charts.byEstado = new Chart(document.getElementById('topVentasChart'), {
+        type: 'doughnut',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: [],
+                borderWidth: 3,
+                borderColor: '#ffffff',
+                hoverOffset: 10,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            ...commonOptions,
+            cutout: '60%',
+            plugins: {
+                ...commonOptions.plugins,
+                legend: {
+                    ...commonOptions.plugins.legend,
+                    position: 'right'
+                },
+                tooltip: {
+                    ...commonOptions.plugins.tooltip,
+                    callbacks: {
+                        label: function (context) {
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return `${context.label}: ${formatCurrency(value)} (${pct}%)`;
+                        }
+                    }
+                }
+            },
+            onClick: (e, els) => { if (els.length) showEstadoDetail(AppState.charts.byEstado.data.labels[els[0].index]); }
+        }
+    });
+
+    // 4. Margen por Línea de Negocio - Horizontal Bar with gradients
+    AppState.charts.margenLinea = new Chart(document.getElementById('topMargenChart'), {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Margen (€)',
+                data: [],
+                backgroundColor: function (context) {
+                    const chart = context.chart;
+                    const { ctx, chartArea } = chart;
+                    if (!chartArea) return '#6366f1';
+                    const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+                    gradient.addColorStop(0, '#6366f1');
+                    gradient.addColorStop(1, '#a855f7');
+                    return gradient;
+                },
+                borderRadius: 6,
+                borderSkipped: false,
+                barThickness: 24
+            }]
+        },
+        options: {
+            ...commonOptions,
+            indexAxis: 'y',
+            plugins: {
+                ...commonOptions.plugins,
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(226, 232, 240, 0.5)' },
+                    ticks: {
+                        callback: function (value) {
+                            return (value / 1000).toFixed(0) + 'K €';
+                        }
+                    }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: {
+                        font: { weight: 500 },
+                        color: '#334155'
+                    }
+                }
+            },
+            onClick: (e, els) => { if (els.length) showBusinessLineDetail(AppState.charts.margenLinea.data.labels[els[0].index]); }
+        }
+    });
+
+    // Store estado colors for dynamic use
+    AppState.estadoColors = estadoColors;
     initModalHandlers();
 }
 
 function updateCharts(byL, byC) {
-    // Distribution chart - Ventas por línea de negocio
+    // 1. Ventas por Línea de Negocio (Doughnut)
     if (AppState.charts.distribution) {
-        const ls = Object.keys(byL).sort((a, b) => byL[b].venta - byL[a].venta).slice(0, 8);
+        const ls = Object.keys(byL)
+            .filter(l => l && l.trim() !== '' && l !== 'Sin Línea')
+            .sort((a, b) => byL[b].venta - byL[a].venta)
+            .slice(0, 8);
         AppState.charts.distribution.data.labels = ls;
         AppState.charts.distribution.data.datasets[0].data = ls.map(l => byL[l].venta);
         AppState.charts.distribution.update();
     }
 
-    // Top 5 Centros por Venta
-    if (AppState.charts.topVentas) {
-        const topVentas = Object.keys(byC)
-            .filter(c => c && c.trim() !== '')
-            .map(c => ({ name: c, venta: byC[c].venta }))
-            .sort((a, b) => b.venta - a.venta)
-            .slice(0, 5);
-        AppState.charts.topVentas.data.labels = topVentas.map(c => c.name);
-        AppState.charts.topVentas.data.datasets[0].data = topVentas.map(c => c.venta);
-        AppState.charts.topVentas.update();
+    // 2. Distribución por Estado (Doughnut)
+    if (AppState.charts.byEstado && AppState.processedData) {
+        const byEstado = {};
+        AppState.processedData.rows.forEach(r => {
+            const estado = r.estado || 'Sin Estado';
+            if (!byEstado[estado]) byEstado[estado] = { venta: 0, margen: 0 };
+            byEstado[estado].venta += r.venta;
+            byEstado[estado].margen += r.margen;
+        });
+
+        const estados = Object.keys(byEstado)
+            .filter(e => e && e.trim() !== '')
+            .sort((a, b) => byEstado[b].venta - byEstado[a].venta);
+
+        const estadoColorPalette = [
+            'rgba(16, 185, 129, 0.85)',   // Verde - Cerrado
+            'rgba(59, 130, 246, 0.85)',    // Azul - En curso
+            'rgba(249, 115, 22, 0.85)',    // Naranja - Pendiente
+            'rgba(139, 92, 246, 0.85)',    // Púrpura - Abierto
+            'rgba(236, 72, 153, 0.85)',    // Rosa
+            'rgba(234, 179, 8, 0.85)',     // Amarillo
+            'rgba(20, 184, 166, 0.85)',    // Teal
+            'rgba(244, 63, 94, 0.85)'      // Rojo
+        ];
+
+        AppState.charts.byEstado.data.labels = estados;
+        AppState.charts.byEstado.data.datasets[0].data = estados.map(e => byEstado[e].venta);
+        AppState.charts.byEstado.data.datasets[0].backgroundColor = estados.map((e, i) => estadoColorPalette[i % estadoColorPalette.length]);
+        AppState.charts.byEstado.update();
     }
 
-    // Top 5 Centros por Margen
-    if (AppState.charts.topMargen) {
-        const topMargen = Object.keys(byC)
-            .filter(c => c && c.trim() !== '')
-            .map(c => ({ name: c, margen: byC[c].margen }))
+    // 3. Margen por Línea de Negocio (Horizontal Bar)
+    if (AppState.charts.margenLinea) {
+        const topLineas = Object.keys(byL)
+            .filter(l => l && l.trim() !== '' && l !== 'Sin Línea')
+            .map(l => ({ name: l, margen: byL[l].margen, venta: byL[l].venta }))
             .sort((a, b) => b.margen - a.margen)
-            .slice(0, 5);
-        AppState.charts.topMargen.data.labels = topMargen.map(c => c.name);
-        AppState.charts.topMargen.data.datasets[0].data = topMargen.map(c => c.margen);
-        AppState.charts.topMargen.update();
+            .slice(0, 6);
+
+        AppState.charts.margenLinea.data.labels = topLineas.map(l => l.name);
+        AppState.charts.margenLinea.data.datasets[0].data = topLineas.map(l => l.margen);
+        AppState.charts.margenLinea.update();
     }
 
     updateMonthlyChart();
@@ -1023,6 +1263,31 @@ function showBusinessLineDetail(line) {
     const tots = currentModalRows.reduce((a, r) => { a.v += r.venta; a.m += r.margen; return a; }, { v: 0, m: 0 });
 
     document.getElementById('modalKPIs').innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(tots.v)}</strong></div><div class="kpi-card"><span>Margen</span><strong>${formatCurrency(tots.m)}</strong></div><div class="kpi-card"><span>Rendimiento</span><strong>${calculateMarginPercentage(tots.v, tots.m).toFixed(1)}%</strong></div>`;
+
+    renderModalTable(currentModalRows);
+    modal.style.display = 'block';
+}
+
+function showEstadoDetail(estado) {
+    const modal = document.getElementById('detailModal');
+    if (!AppState.processedData) return;
+    const searchInput = document.getElementById('modalSearch');
+
+    document.getElementById('modalTitle').textContent = `Estado: ${estado}`;
+    if (searchInput) searchInput.value = '';
+
+    currentModalRows = AppState.processedData.rows.filter(r => r.estado === estado);
+    const tots = currentModalRows.reduce((a, r) => {
+        a.v += r.venta;
+        a.m += r.margen;
+        a.count++;
+        return a;
+    }, { v: 0, m: 0, count: 0 });
+
+    document.getElementById('modalKPIs').innerHTML = `
+        <div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(tots.v)}</strong></div>
+        <div class="kpi-card"><span>Margen</span><strong>${formatCurrency(tots.m)}</strong></div>
+        <div class="kpi-card"><span>Registros</span><strong>${tots.count}</strong></div>`;
 
     renderModalTable(currentModalRows);
     modal.style.display = 'block';

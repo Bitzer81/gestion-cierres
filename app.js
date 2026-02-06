@@ -1,4 +1,4 @@
-/* ========================================
+﻿/* ========================================
    CierresPro - Professional CRM & Analytics
    Reorganized & Optimized Version 1.4.1
    ======================================== */
@@ -33,10 +33,10 @@ const EXCEL_COLUMNS = {
     nomCentro: 'Nom_centro',
     lineaNegocio: 'Lin_negocio',
     tipo: 'Tipo',
-    numero: 'Número',
+    numero: 'NÃºmero',
     nombre: 'Nombre',
     estado: 'Estado',
-    categoria: 'Categoría',
+    categoria: 'CategorÃ­a',
     apertura: 'Apertura',
     cierre: 'Cierre',
     ultFactura: 'Ult_factura',
@@ -153,10 +153,11 @@ function initNavigation() {
     const headerSubtitle = document.querySelector('.header-subtitle');
 
     const sectionInfo = {
-        dashboard: { title: 'Resumen General', subtitle: 'Vista combinada de métricas y análisis' },
-        clients: { title: 'Gestión de Clientes', subtitle: 'Análisis detallado por cliente', onEnter: renderClients },
-        history: { title: 'Histórico de Cierres', subtitle: 'Registros de meses anteriores', onEnter: renderHistory },
-        settings: { title: 'Configuración', subtitle: 'Ajustes del sistema y datos', onEnter: loadSettings }
+        dashboard: { title: 'Resumen General', subtitle: 'Vista combinada de mÃ©tricas y anÃ¡lisis' },
+        clients: { title: 'GestiÃ³n de Clientes', subtitle: 'AnÃ¡lisis detallado por cliente', onEnter: renderClients },
+        history: { title: 'HistÃ³rico de Cierres', subtitle: 'Registros de meses anteriores', onEnter: renderHistory },
+        reports: { title: 'Generador de Informes', subtitle: 'Redacción de informe ejecutivo', onEnter: () => {} },
+        settings: { title: 'ConfiguraciÃ³n', subtitle: 'Ajustes del sistema y datos', onEnter: loadSettings }
     };
 
     function navigateToSection(sectionId) {
@@ -281,7 +282,7 @@ function handleFile(file) {
             const workbook = XLSX.read(data, { type: 'array' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-            if (!jsonData.length) return showToast('El archivo está vacío', 'error');
+            if (!jsonData.length) return showToast('El archivo estÃ¡ vacÃ­o', 'error');
 
             AppState.currentData = {
                 fileName: file.name,
@@ -290,7 +291,7 @@ function handleFile(file) {
                 rawWorkbook: workbook
             };
             showPreview(AppState.currentData);
-            showToast('Archivo leído correctamente', 'success');
+            showToast('Archivo leÃ­do correctamente', 'success');
         } catch (error) {
             showToast('Error al leer el archivo: ' + error.message, 'error');
         }
@@ -373,7 +374,7 @@ function processData(data) {
     });
 
     if (colIdx.venta === -1 || colIdx.coste === -1) {
-        throw new Error('No se han encontrado las columnas de "Venta" o "Coste". Revisa la configuración o usa la plantilla.');
+        throw new Error('No se han encontrado las columnas de "Venta" o "Coste". Revisa la configuraciÃ³n o usa la plantilla.');
     }
 
     let totalV = 0, totalC = 0, totalM = 0, totalPV = 0, totalPC = 0;
@@ -383,24 +384,24 @@ function processData(data) {
     data.rows.forEach(row => {
         if (!row || !row.length) return;
 
-        // Extraer valores básicos - separamos Nom_cliente del Nombre del pedido
+        // Extraer valores bÃ¡sicos - separamos Nom_cliente del Nombre del pedido
         const nomCliente = String(row[colIdx.nomCliente] || '').trim();
         const nombrePedido = String(row[colIdx.nombre] || '').trim();
         const centroRaw = String(row[colIdx.nomCentro] || '').trim();
         const codCli = String(row[colIdx.codCliente] || '').trim();
         const codCen = String(row[colIdx.codCentro] || '').trim();
 
-        // Para validación usamos el nombre del cliente o el del pedido
+        // Para validaciÃ³n usamos el nombre del cliente o el del pedido
         const nameRaw = nomCliente || nombrePedido;
         const name = nameRaw.toUpperCase();
         const centro = centroRaw;
-        const linea = String(row[colIdx.lineaNegocio] || 'Sin Línea').trim();
+        const linea = String(row[colIdx.lineaNegocio] || 'Sin LÃ­nea').trim();
         const estado = String(row[colIdx.estado] || 'Sin Estado').trim();
 
-        // 1. FILTRADO DE FILAS VACÍAS O DE ENCABEZADO REPETIDO
+        // 1. FILTRADO DE FILAS VACÃAS O DE ENCABEZADO REPETIDO
         if (!name || name === 'UNDEFINED' || name === 'NULL' || name === 'NOMBRE' || name === 'NOM_CLIENTE') return;
 
-        // 2. FILTRADO ULTRA-ESTRICTO DE SUB-TOTALES Y RESÚMENES
+        // 2. FILTRADO ULTRA-ESTRICTO DE SUB-TOTALES Y RESÃšMENES
         const isSummaryRow = row.some(cell => {
             if (typeof cell !== 'string') return false;
             const c = cell.toUpperCase();
@@ -408,7 +409,7 @@ function processData(data) {
         });
         if (isSummaryRow) return;
 
-        // 3. VALIDACIÓN DE IDENTIDAD
+        // 3. VALIDACIÃ“N DE IDENTIDAD
         if (!codCli && !codCen && !centroRaw && !nameRaw) return;
 
         const venta = parseNumber(row[colIdx.venta]);
@@ -493,7 +494,7 @@ function parseNumber(v) {
     else if (s.endsWith('-')) { neg = true; s = s.slice(0, -1); }
     else if (s.startsWith('-')) { neg = true; s = s.slice(1); }
 
-    s = s.replace(/[€$£\s]/g, '');
+    s = s.replace(/[â‚¬$Â£\s]/g, '');
 
     const lastComma = s.lastIndexOf(',');
     const lastDot = s.lastIndexOf('.');
@@ -632,13 +633,13 @@ function updateKPIs(data) {
 function updateYoYBadge(el, v) {
     el.style.display = 'inline-flex';
     el.className = `kpi-badge yoy ${v >= 0 ? 'positive' : 'negative'}`;
-    el.textContent = `${v >= 0 ? '▲' : '▼'} ${Math.abs(v).toFixed(1)}% YoY`;
+    el.textContent = `${v >= 0 ? 'â–²' : 'â–¼'} ${Math.abs(v).toFixed(1)}% YoY`;
 }
 
 function updateBudgetBadge(el, v) {
     el.style.display = 'inline-flex';
     el.className = `kpi-badge budget ${v >= 100 ? 'positive' : 'warning'}`;
-    el.textContent = `🎯 ${v.toFixed(0)}%`;
+    el.textContent = `ðŸŽ¯ ${v.toFixed(0)}%`;
 }
 
 function updateDataTable(rows) {
@@ -654,12 +655,12 @@ function updateDataTable(rows) {
             <td class="text-right" style="color: var(--color-cost)">${formatCurrency(row.coste)}</td>
             <td class="text-right" style="color: ${row.margen >= 0 ? 'var(--color-revenue)' : 'var(--color-cost)'}">${formatCurrency(row.margen)}</td>
             <td class="text-right ${isLow ? 'critical-margin' : ''}">
-                ${isLow ? '⚠️ ' : ''}${row.margenPct.toFixed(1)}%
+                ${isLow ? 'âš ï¸ ' : ''}${row.margenPct.toFixed(1)}%
             </td>
         </tr>`;
     }).join('') : '<tr class="empty-state"><td colspan="7">No hay datos</td></tr>';
     const header = document.querySelector('.table-header h3');
-    if (header) header.textContent = `Detalle del Período (${rows.length} registros)`;
+    if (header) header.textContent = `Detalle del PerÃ­odo (${rows.length} registros)`;
 }
 
 function renderAnalysis() {
@@ -676,7 +677,7 @@ function renderAnalysis() {
             <td class="text-right">${formatCurrency(r.venta)}</td>
             <td class="text-right">${formatCurrency(r.coste)}</td>
             <td class="text-right" style="color: ${r.margen >= 0 ? 'var(--color-revenue)' : 'var(--color-cost)'}">${formatCurrency(r.margen)}</td>
-            <td class="text-right ${isLow ? 'critical-margin' : ''}">${isLow ? '⚠️ ' : ''}${r.margenPct.toFixed(1)}%</td>
+            <td class="text-right ${isLow ? 'critical-margin' : ''}">${isLow ? 'âš ï¸ ' : ''}${r.margenPct.toFixed(1)}%</td>
         </tr>`;
     }).join('');
     const summ = document.getElementById('reportSummary');
@@ -687,7 +688,7 @@ function generateSmartSummary(d) {
     const mP = calculateMarginPercentage(d.totals.totalVenta, d.totals.totalMargen);
     const cs = Object.keys(d.byCenter).map(c => ({ name: c, ...d.byCenter[c], pct: calculateMarginPercentage(d.byCenter[c].venta, d.byCenter[c].margen) }));
     const top = cs.sort((a, b) => b.margen - a.margen)[0];
-    return `<div style="line-height:1.6"><strong>Resumen Ejecutivo:</strong> Ventas de <strong>${formatCurrency(d.totals.totalVenta)}</strong> con margen de <strong>${formatCurrency(d.totals.totalMargen)}</strong> (${mP.toFixed(1)}%).<br><strong>Puntos Clave:</strong> Mayor contribución de <em>${top?.name || 'N/A'}</em>. Se detectan <strong>${cs.filter(c => c.pct < 20).length}</strong> centros críticos.</div>`;
+    return `<div style="line-height:1.6"><strong>Resumen Ejecutivo:</strong> Ventas de <strong>${formatCurrency(d.totals.totalVenta)}</strong> con margen de <strong>${formatCurrency(d.totals.totalMargen)}</strong> (${mP.toFixed(1)}%).<br><strong>Puntos Clave:</strong> Mayor contribuciÃ³n de <em>${top?.name || 'N/A'}</em>. Se detectan <strong>${cs.filter(c => c.pct < 20).length}</strong> centros crÃ­ticos.</div>`;
 }
 
 function truncateText(t, l) { return t?.length > l ? t.substring(0, l) + '...' : t; }
@@ -773,7 +774,7 @@ function renderClients() {
         return;
     }
 
-    // Función para extraer el nombre base del cliente desde el centro
+    // FunciÃ³n para extraer el nombre base del cliente desde el centro
     // Ej: "ALIMERKA,S.A." -> "ALIMERKA", "BAYER ASTURIAS" -> "BAYER"
     function extractClientName(centro) {
         if (!centro || centro === 'Sin centro') return null;
@@ -815,7 +816,7 @@ function renderClients() {
             rowCount: 0
         };
 
-        // Agregar centro único
+        // Agregar centro Ãºnico
         const centroName = centroRaw || 'Sin centro';
         if (!map[clientName].centers.has(centroName)) {
             map[clientName].centers.set(centroName, {
@@ -874,7 +875,7 @@ function renderClientList(cs) {
             <div class="client-metrics">
                 <span>${c.centers.length} Centros</span>
                 <span style="color:${c.totalMargen >= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'}" class="${isLow ? 'critical-margin' : ''}">
-                    ${isLow ? '⚠️ ' : ''}${mPct.toFixed(1)}%
+                    ${isLow ? 'âš ï¸ ' : ''}${mPct.toFixed(1)}%
                 </span>
             </div>
         </div>`;
@@ -892,13 +893,13 @@ window.selectClient = (name) => {
     v.innerHTML = `
         <div class="client-detail-header" style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--bg-tertiary); border-radius: 12px; margin-bottom: 20px;">
             <div>
-                <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-primary);">👤 ${c.name}</h2>
-                <span style="color: var(--text-muted); font-size: 0.9rem;">${c.centers.length} centros • ${c.rowCount || c.centers.length} registros</span>
+                <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-primary);">ðŸ‘¤ ${c.name}</h2>
+                <span style="color: var(--text-muted); font-size: 0.9rem;">${c.centers.length} centros â€¢ ${c.rowCount || c.centers.length} registros</span>
             </div>
             <div style="text-align: right;">
                 <div style="font-size: 1.3rem; font-weight: 700; color: var(--accent-success);">${formatCurrency(c.totalVenta)}</div>
                 <span class="${isLowTotal ? 'critical-margin' : ''}" style="font-size: 0.95rem;">
-                    ${isLowTotal ? '⚠️ ' : '✅ '}Margen: ${mTotal.toFixed(1)}%
+                    ${isLowTotal ? 'âš ï¸ ' : 'âœ… '}Margen: ${mTotal.toFixed(1)}%
                 </span>
             </div>
         </div>
@@ -922,16 +923,16 @@ window.selectClient = (name) => {
             </div>
         </div>
         
-        <h3 style="margin-bottom: 12px; color: var(--text-secondary);">📍 Centros de ${c.name}</h3>
+        <h3 style="margin-bottom: 12px; color: var(--text-secondary);">ðŸ“ Centros de ${c.name}</h3>
         <div style="overflow-x: auto; max-height: 350px; overflow-y: auto;">
             <table class="modal-table" style="min-width: 600px;">
                 <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
                     <tr>
                         <th>Centro</th>
-                        <th>Línea</th>
-                        <th class="text-right">Venta (€)</th>
-                        <th class="text-right">Coste (€)</th>
-                        <th class="text-right">Margen (€)</th>
+                        <th>LÃ­nea</th>
+                        <th class="text-right">Venta (â‚¬)</th>
+                        <th class="text-right">Coste (â‚¬)</th>
+                        <th class="text-right">Margen (â‚¬)</th>
                         <th class="text-right">% Margen</th>
                     </tr>
                 </thead>
@@ -945,7 +946,7 @@ window.selectClient = (name) => {
                             <td class="text-right">${formatCurrency(r.venta)}</td>
                             <td class="text-right" style="color: var(--accent-danger);">${formatCurrency(r.coste)}</td>
                             <td class="text-right ${r.margen >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(r.margen)}</td>
-                            <td class="text-right ${isLow ? 'critical-margin' : ''}">${isLow ? '⚠️ ' : ''}${r.margenPct.toFixed(1)}%</td>
+                            <td class="text-right ${isLow ? 'critical-margin' : ''}">${isLow ? 'âš ï¸ ' : ''}${r.margenPct.toFixed(1)}%</td>
                         </tr>`;
     }).join('')}
                 </tbody>
@@ -970,19 +971,19 @@ function renderClientSettingsList() {
 }
 
 window.removeManagedClient = (i) => {
-    if (confirm(`¿Eliminar dashboard de ${AppState.managedClients[i].name}?`)) { AppState.managedClients.splice(i, 1); saveManagedClients(); renderClientSettingsList(); refreshDynamicSections(); window.refreshNavigation(); }
+    if (confirm(`Â¿Eliminar dashboard de ${AppState.managedClients[i].name}?`)) { AppState.managedClients.splice(i, 1); saveManagedClients(); renderClientSettingsList(); refreshDynamicSections(); window.refreshNavigation(); }
 };
 
 function refreshDynamicSections() {
-    // Ya no generamos secciones dinámicas para simplificar la página.
-    // Los clientes favoritos se mostrarán dentro de la vista de "Clientes".
+    // Ya no generamos secciones dinÃ¡micas para simplificar la pÃ¡gina.
+    // Los clientes favoritos se mostrarÃ¡n dentro de la vista de "Clientes".
 }
 
 function renderClientDashboard(name, id) {
     if (!AppState.processedData) return;
     const rows = AppState.processedData.rows.filter(r => String(r.cliente).toUpperCase().includes(name));
     const tots = rows.reduce((a, r) => { a.v += r.venta; a.m += r.margen; return a; }, { v: 0, m: 0 });
-    document.getElementById(`${id}KPIs`).innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(tots.v)}</strong></div><div class="kpi-card"><span>Margen (€)</span><strong>${formatCurrency(tots.m)}</strong></div><div class="kpi-card"><span>Margen (%)</span><strong>${calculateMarginPercentage(tots.v, tots.m).toFixed(1)}%</strong></div><div class="kpi-card"><span>Centros</span><strong>${rows.length}</strong></div>`;
+    document.getElementById(`${id}KPIs`).innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(tots.v)}</strong></div><div class="kpi-card"><span>Margen (â‚¬)</span><strong>${formatCurrency(tots.m)}</strong></div><div class="kpi-card"><span>Margen (%)</span><strong>${calculateMarginPercentage(tots.v, tots.m).toFixed(1)}%</strong></div><div class="kpi-card"><span>Centros</span><strong>${rows.length}</strong></div>`;
     document.getElementById(`${id}TableBody`).innerHTML = rows.map(r => `<tr><td>${r.centro}</td><td>${r.lineaNegocio}</td><td class="text-right">${formatCurrency(r.venta)}</td><td class="text-right">${r.margenPct.toFixed(1)}%</td></tr>`).join('');
     const ch = AppState.charts[id];
     if (ch) { const map = rows.reduce((a, r) => { a[r.centro] = (a[r.centro] || 0) + r.venta; return a; }, {}); ch.data.labels = Object.keys(map); ch.data.datasets[0].data = Object.values(map); ch.update(); }
@@ -1015,14 +1016,14 @@ function initCharts() {
         'default': { bg: 'rgba(100, 116, 139, 0.85)', border: '#475569' }
     };
 
-    // Función para formatear valores en K€
+    // FunciÃ³n para formatear valores en Kâ‚¬
     const formatK = (value) => {
         if (Math.abs(value) >= 1000000) {
-            return (value / 1000000).toFixed(1) + 'M€';
+            return (value / 1000000).toFixed(1) + 'Mâ‚¬';
         } else if (Math.abs(value) >= 1000) {
-            return (value / 1000).toFixed(0) + 'K€';
+            return (value / 1000).toFixed(0) + 'Kâ‚¬';
         }
-        return value.toFixed(0) + '€';
+        return value.toFixed(0) + 'â‚¬';
     };
 
     const commonOptions = {
@@ -1075,14 +1076,14 @@ function initCharts() {
                         const value = context.chart.config.options.indexAxis === 'y'
                             ? context.parsed.x
                             : (context.parsed.y !== undefined ? context.parsed.y : context.parsed);
-                        return `  💰 ${formatCurrency(value)}`;
+                        return `  ðŸ’° ${formatCurrency(value)}`;
                     },
                     afterLabel: function (context) {
-                        // Para gráficas doughnut, añadir porcentaje
+                        // Para grÃ¡ficas doughnut, aÃ±adir porcentaje
                         if (context.chart.config.type === 'doughnut') {
                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
                             const pct = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
-                            return `  📊 ${pct}% del total`;
+                            return `  ðŸ“Š ${pct}% del total`;
                         }
                         return '';
                     }
@@ -1094,7 +1095,7 @@ function initCharts() {
         }
     };
 
-    // 1. Evolución Mensual - Line Chart with gradient fill
+    // 1. EvoluciÃ³n Mensual - Line Chart with gradient fill
     const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
     const gradientRevenue = monthlyCtx.createLinearGradient(0, 0, 0, 280);
     gradientRevenue.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
@@ -1144,7 +1145,7 @@ function initCharts() {
                     grid: { color: 'rgba(226, 232, 240, 0.6)' },
                     ticks: {
                         callback: function (value) {
-                            return (value / 1000).toFixed(0) + 'K €';
+                            return (value / 1000).toFixed(0) + 'K â‚¬';
                         }
                     }
                 },
@@ -1153,7 +1154,7 @@ function initCharts() {
         }
     });
 
-    // 2. Ventas por Línea de Negocio - Enhanced Doughnut with values
+    // 2. Ventas por LÃ­nea de Negocio - Enhanced Doughnut with values
     AppState.charts.distribution = new Chart(document.getElementById('costDistributionChart'), {
         type: 'doughnut',
         data: {
@@ -1205,7 +1206,7 @@ function initCharts() {
         }
     });
 
-    // 3. Distribución por Estado - Doughnut Chart
+    // 3. DistribuciÃ³n por Estado - Doughnut Chart
     AppState.charts.byEstado = new Chart(document.getElementById('topVentasChart'), {
         type: 'doughnut',
         data: {
@@ -1236,13 +1237,13 @@ function initCharts() {
         }
     });
 
-    // 4. Margen por Línea de Negocio - Horizontal Bar with gradients
+    // 4. Margen por LÃ­nea de Negocio - Horizontal Bar with gradients
     AppState.charts.margenLinea = new Chart(document.getElementById('topMargenChart'), {
         type: 'bar',
         data: {
             labels: [],
             datasets: [{
-                label: 'Margen (€)',
+                label: 'Margen (â‚¬)',
                 data: [],
                 backgroundColor: function (context) {
                     const chart = context.chart;
@@ -1271,7 +1272,7 @@ function initCharts() {
                     grid: { color: 'rgba(226, 232, 240, 0.5)' },
                     ticks: {
                         callback: function (value) {
-                            return (value / 1000).toFixed(0) + 'K €';
+                            return (value / 1000).toFixed(0) + 'K â‚¬';
                         }
                     }
                 },
@@ -1293,10 +1294,10 @@ function initCharts() {
 }
 
 function updateCharts(byL, byC) {
-    // 1. Ventas por Línea de Negocio (Doughnut)
+    // 1. Ventas por LÃ­nea de Negocio (Doughnut)
     if (AppState.charts.distribution) {
         const ls = Object.keys(byL)
-            .filter(l => l && l.trim() !== '' && l !== 'Sin Línea')
+            .filter(l => l && l.trim() !== '' && l !== 'Sin LÃ­nea')
             .sort((a, b) => byL[b].venta - byL[a].venta)
             .slice(0, 8);
         AppState.charts.distribution.data.labels = ls;
@@ -1304,7 +1305,7 @@ function updateCharts(byL, byC) {
         AppState.charts.distribution.update();
     }
 
-    // 2. Distribución por Estado (Doughnut)
+    // 2. DistribuciÃ³n por Estado (Doughnut)
     if (AppState.charts.byEstado && AppState.processedData) {
         const byEstado = {};
         AppState.processedData.rows.forEach(r => {
@@ -1315,7 +1316,7 @@ function updateCharts(byL, byC) {
         });
 
         // Debug: Log unique estados encontrados
-        console.log('Estados únicos encontrados:', Object.keys(byEstado));
+        console.log('Estados Ãºnicos encontrados:', Object.keys(byEstado));
 
         const estados = Object.keys(byEstado)
             .filter(e => e && e.trim() !== '' && e !== 'Sin Estado')
@@ -1326,7 +1327,7 @@ function updateCharts(byL, byC) {
             'rgba(16, 185, 129, 0.85)',   // Verde
             'rgba(59, 130, 246, 0.85)',    // Azul
             'rgba(249, 115, 22, 0.85)',    // Naranja
-            'rgba(139, 92, 246, 0.85)',    // Púrpura
+            'rgba(139, 92, 246, 0.85)',    // PÃºrpura
             'rgba(236, 72, 153, 0.85)',    // Rosa
             'rgba(234, 179, 8, 0.85)',     // Amarillo
             'rgba(20, 184, 166, 0.85)',    // Teal
@@ -1339,10 +1340,10 @@ function updateCharts(byL, byC) {
         AppState.charts.byEstado.update();
     }
 
-    // 3. Margen por Línea de Negocio (Horizontal Bar)
+    // 3. Margen por LÃ­nea de Negocio (Horizontal Bar)
     if (AppState.charts.margenLinea) {
         const topLineas = Object.keys(byL)
-            .filter(l => l && l.trim() !== '' && l !== 'Sin Línea')
+            .filter(l => l && l.trim() !== '' && l !== 'Sin LÃ­nea')
             .map(l => ({ name: l, margen: byL[l].margen, venta: byL[l].venta }))
             .sort((a, b) => b.margen - a.margen)
             .slice(0, 6);
@@ -1361,7 +1362,7 @@ function updateMonthlyChart() {
 }
 
 function initDynamicClientChart(id) {
-    AppState.charts[id] = new Chart(document.getElementById(`${id}Chart`), { type: 'bar', data: { labels: [], datasets: [{ label: 'Venta (€)', backgroundColor: '#6366f1' }] }, options: { responsive: true, maintainAspectRatio: false } });
+    AppState.charts[id] = new Chart(document.getElementById(`${id}Chart`), { type: 'bar', data: { labels: [], datasets: [{ label: 'Venta (â‚¬)', backgroundColor: '#6366f1' }] }, options: { responsive: true, maintainAspectRatio: false } });
 }
 
 // ========================================
@@ -1410,7 +1411,7 @@ function showDetailModal(center) {
     document.getElementById('modalTitle').textContent = `Detalle: ${center}`;
     if (searchInput) searchInput.value = '';
 
-    document.getElementById('modalKPIs').innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(d.venta)}</strong></div><div class="kpi-card"><span>Margen (€)</span><strong>${formatCurrency(d.margen)}</strong></div><div class="kpi-card"><span>Rendimiento</span><strong>${calculateMarginPercentage(d.venta, d.margen).toFixed(1)}%</strong></div>`;
+    document.getElementById('modalKPIs').innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(d.venta)}</strong></div><div class="kpi-card"><span>Margen (â‚¬)</span><strong>${formatCurrency(d.margen)}</strong></div><div class="kpi-card"><span>Rendimiento</span><strong>${calculateMarginPercentage(d.venta, d.margen).toFixed(1)}%</strong></div>`;
 
     currentModalRows = AppState.processedData.rows.filter(r => r.centro === center);
     renderModalTable(currentModalRows);
@@ -1422,7 +1423,7 @@ function showBusinessLineDetail(line) {
     const modal = document.getElementById('detailModal'); if (!AppState.processedData) return;
     const searchInput = document.getElementById('modalSearch');
 
-    document.getElementById('modalTitle').textContent = `Línea: ${line}`;
+    document.getElementById('modalTitle').textContent = `LÃ­nea: ${line}`;
     if (searchInput) searchInput.value = '';
 
     currentModalRows = AppState.processedData.rows.filter(r => r.lineaNegocio === line);
@@ -1481,9 +1482,9 @@ function renderHistory() {
     if (!AppState.historicalData.length) {
         g.innerHTML = `
             <div class="empty-state-large" style="grid-column: 1/-1; text-align: center; padding: 60px;">
-                <div style="font-size: 3rem; margin-bottom: 16px;">📊</div>
-                <h3>Sin datos históricos</h3>
-                <p style="color: var(--text-muted); margin-top: 8px;">Carga archivos Excel para generar histórico</p>
+                <div style="font-size: 3rem; margin-bottom: 16px;">ðŸ“Š</div>
+                <h3>Sin datos histÃ³ricos</h3>
+                <p style="color: var(--text-muted); margin-top: 8px;">Carga archivos Excel para generar histÃ³rico</p>
             </div>`;
         return;
     }
@@ -1497,8 +1498,8 @@ function renderHistory() {
         return `
         <div class="history-card" onclick="loadHistoryItem(${idx})">
             <div class="history-header">
-                <span>📅 ${item.period}</span>
-                <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteHistoryItem(${idx})" title="Eliminar">×</button>
+                <span>ðŸ“… ${item.period}</span>
+                <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteHistoryItem(${idx})" title="Eliminar">Ã—</button>
             </div>
             <div class="history-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div class="history-stat-item">
@@ -1518,12 +1519,12 @@ function renderHistory() {
                     <div class="value ${margenPct < 20 ? 'negative' : 'positive'}">${margenPct}%</div>
                 </div>
             </div>
-            ${rowCount > 0 ? `<div style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);">📋 ${rowCount} registros</div>` : ''}
+            ${rowCount > 0 ? `<div style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);">ðŸ“‹ ${rowCount} registros</div>` : ''}
         </div>`;
     }).join('');
 }
 
-window.deleteHistoryItem = (i) => { if (confirm('¿Eliminar registro?')) { AppState.historicalData.splice(i, 1); localStorage.setItem('cierresPro_history', JSON.stringify(AppState.historicalData)); renderHistory(); updateMonthlyChart(); } };
+window.deleteHistoryItem = (i) => { if (confirm('Â¿Eliminar registro?')) { AppState.historicalData.splice(i, 1); localStorage.setItem('cierresPro_history', JSON.stringify(AppState.historicalData)); renderHistory(); updateMonthlyChart(); } };
 window.loadHistoryItem = (i) => {
     const it = AppState.historicalData[i]; if (!it) return;
     AppState.processedData = it; updateDashboard(it); document.getElementById('currentPeriod').textContent = it.period; window.navigateToSection('dashboard');
@@ -1543,7 +1544,7 @@ function loadSettings() {
 // 12. Backup & Export
 // ========================================
 function exportData() {
-    const rows = [['Período', 'Ventas', 'Costes', 'Margen']]; AppState.historicalData.forEach(h => rows.push([h.period, h.totals.totalVenta, h.totals.totalCoste, h.totals.totalMargen]));
+    const rows = [['PerÃ­odo', 'Ventas', 'Costes', 'Margen']]; AppState.historicalData.forEach(h => rows.push([h.period, h.totals.totalVenta, h.totals.totalCoste, h.totals.totalMargen]));
     const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Resumen'); XLSX.writeFile(wb, `CierresPro_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
@@ -1578,7 +1579,7 @@ async function exportToPDF(id, name) {
 }
 
 function openClientsHub() {
-    if (!AppState.processedData) return showToast('Primero carga los datos del período', 'warning');
+    if (!AppState.processedData) return showToast('Primero carga los datos del perÃ­odo', 'warning');
 
     const d = AppState.processedData.rows;
     const map = {};
@@ -1635,3 +1636,90 @@ window.renderClients = renderClients;
 window.renderAnalysis = renderAnalysis;
 window.saveSettings = saveSettings;
 window.openClientsHub = openClientsHub;
+
+// ========================================
+// 14. Reports Module
+// ========================================
+const REPORT_TEMPLATES = {
+    intro: "## 1. Introducción\nEste informe presenta los resultados del cierre mensual correspondiente al período [PERIODO]. El objetivo es analizar el rendimiento financiero global, por centros y líneas de negocio.\n\n",
+    kpis: "## 2. Resumen de KPIs\n- Ventas Totales: [VENTAS]\n- Coste Total: [COSTES]\n- Margen Neto: [MARGEN] ([MARGEN_PCT]%)\n- Comparativa vs año anterior: [YOY_CHANGE]\n\n",
+    topClients: "## 3. Top Clientes\nLos 5 principales clientes por volumen de venta han sido:\n[LISTA_TOP_CLIENTES]\n\n",
+    issues: "## 4. Incidencias Detectadas\nSe han observado márgenes inferiores al 20% en los siguientes centros clave:\n[LISTA_BAJO_MARGEN]\n\n",
+    conclusions: "## 5. Conclusiones\nEl rendimiento general del mes ha sido [POSITIVO/NEGATIVO]. Se recomienda revisar costes en las líneas de negocio con menor rentabilidad y potenciar las ventas en [MEJOR_LINEA].\n"
+};
+
+window.insertTemplate = (key) => {
+    const editor = document.getElementById('reportEditor');
+    if (!editor) return;
+    
+    let text = REPORT_TEMPLATES[key] || '';
+    
+    // Replace placeholders if data is available
+    if (AppState.processedData) {
+        const d = AppState.processedData;
+        const t = d.totals;
+        const mpct = calculateMarginPercentage(t.totalVenta, t.totalMargen).toFixed(1);
+        
+        text = text.replace('[PERIODO]', d.period || 'Actual')
+                   .replace('[VENTAS]', formatCurrency(t.totalVenta))
+                   .replace('[COSTES]', formatCurrency(t.totalCoste))
+                   .replace('[MARGEN]', formatCurrency(t.totalMargen))
+                   .replace('[MARGEN_PCT]', mpct);
+                   
+        // Simple Top lists logic if needed (can be enhanced)
+        if (key === 'topClients' && currentClientsData.length) {
+            const top5 = currentClientsData.slice(0, 5).map(c => 
+                - :  (Mg: %)
+            ).join('\n');
+            text = text.replace('[LISTA_TOP_CLIENTES]', top5);
+        }
+        
+        if (key === 'issues' && d.rows) {
+             const issues = d.rows.filter(r => r.margenPct < 20 && r.venta > 1000).slice(0, 5)
+                .map(r => -  (): Mg %)
+                .join('\n');
+             text = text.replace('[LISTA_BAJO_MARGEN]', issues || 'No se detectaron incidencias mayores.');
+        }
+    }
+    
+    editor.value += text;
+    editor.scrollTop = editor.scrollHeight;
+};
+
+window.generateAutoReport = () => {
+    const editor = document.getElementById('reportEditor');
+    if (!editor) return;
+    editor.value = '';
+    
+    // Insert all templates sequentially
+    ['intro', 'kpis', 'topClients', 'issues', 'conclusions'].forEach(key => insertTemplate(key));
+    showToast('Informe generado automáticamente', 'success');
+};
+
+window.copyReportToClipboard = () => {
+    const editor = document.getElementById('reportEditor');
+    if (!editor) return;
+    editor.select();
+    document.execCommand('copy');
+    showToast('Copiado al portapapeles', 'success');
+};
+
+window.exportReportPDF = () => {
+    const text = document.getElementById('reportEditor').value;
+    if (!text) { showToast('El informe está vacío', 'warning'); return; }
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFont('helvetica');
+    doc.setFontSize(16);
+    doc.text('Informe Ejecutivo de Cierre', 20, 20);
+    
+    doc.setFontSize(11);
+    const splitText = doc.splitTextToSize(text, 170);
+    doc.text(splitText, 20, 40);
+    
+    doc.save('Informe_Cierre.pdf');
+    showToast('Informe descargado', 'success');
+};
+

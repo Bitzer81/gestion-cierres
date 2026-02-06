@@ -912,6 +912,10 @@ function initCharts() {
             duration: 800,
             easing: 'easeOutQuart'
         },
+        interaction: {
+            mode: 'nearest',
+            intersect: true
+        },
         plugins: {
             legend: {
                 position: 'bottom',
@@ -924,31 +928,48 @@ function initCharts() {
                 }
             },
             tooltip: {
-                backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                titleColor: '#0f172a',
-                titleFont: { size: 14, weight: 600 },
-                bodyColor: '#475569',
-                bodyFont: { size: 13 },
-                borderColor: '#e2e8f0',
+                enabled: true,
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                titleColor: '#ffffff',
+                titleFont: { size: 14, weight: 700, family: "'Inter', sans-serif" },
+                titleMarginBottom: 10,
+                bodyColor: '#e2e8f0',
+                bodyFont: { size: 13, weight: 500, family: "'Inter', sans-serif" },
+                bodySpacing: 6,
+                borderColor: 'rgba(99, 102, 241, 0.4)',
                 borderWidth: 1,
-                padding: 14,
-                cornerRadius: 10,
+                padding: { top: 14, bottom: 14, left: 16, right: 16 },
+                cornerRadius: 12,
                 displayColors: true,
-                boxPadding: 8,
+                boxWidth: 12,
+                boxHeight: 12,
+                boxPadding: 6,
+                usePointStyle: true,
+                caretSize: 8,
+                caretPadding: 10,
                 callbacks: {
+                    title: function (context) {
+                        return context[0].label || '';
+                    },
                     label: function (context) {
-                        let label = context.dataset.label || context.label || '';
-                        if (label) label += ': ';
                         const value = context.chart.config.options.indexAxis === 'y'
                             ? context.parsed.x
                             : (context.parsed.y !== undefined ? context.parsed.y : context.parsed);
-                        label += formatCurrency(value);
-                        return label;
+                        return `  💰 ${formatCurrency(value)}`;
+                    },
+                    afterLabel: function (context) {
+                        // Para gráficas doughnut, añadir porcentaje
+                        if (context.chart.config.type === 'doughnut') {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                            return `  📊 ${pct}% del total`;
+                        }
+                        return '';
                     }
                 }
             },
             datalabels: {
-                display: false // Por defecto desactivado, se activa por gráfica
+                display: false
             }
         }
     };
@@ -1057,31 +1078,14 @@ function initCharts() {
                     }
                 },
                 tooltip: {
-                    ...commonOptions.plugins.tooltip,
-                    callbacks: {
-                        label: function (context) {
-                            const value = context.raw;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                            return `${context.label}: ${formatCurrency(value)} (${pct}%)`;
-                        }
-                    }
-                },
-                datalabels: {
-                    display: true,
-                    color: '#ffffff',
-                    font: { weight: 'bold', size: 11 },
-                    formatter: (value) => formatK(value),
-                    anchor: 'center',
-                    align: 'center'
+                    ...commonOptions.plugins.tooltip
                 }
             },
             onClick: (e, els) => { if (els.length) showBusinessLineDetail(AppState.charts.distribution.data.labels[els[0].index]); }
         }
     });
 
-    // 3. Distribución por Estado - New Doughnut Chart
-    console.log('Inicializando gráfica byEstado en canvas topVentasChart');
+    // 3. Distribución por Estado - Doughnut Chart
     AppState.charts.byEstado = new Chart(document.getElementById('topVentasChart'), {
         type: 'doughnut',
         data: {
@@ -1105,29 +1109,12 @@ function initCharts() {
                     position: 'right'
                 },
                 tooltip: {
-                    ...commonOptions.plugins.tooltip,
-                    callbacks: {
-                        label: function (context) {
-                            const value = context.raw;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                            return `${context.label}: ${formatCurrency(value)} (${pct}%)`;
-                        }
-                    }
-                },
-                datalabels: {
-                    display: true,
-                    color: '#ffffff',
-                    font: { weight: 'bold', size: 11 },
-                    formatter: (value) => formatK(value),
-                    anchor: 'center',
-                    align: 'center'
+                    ...commonOptions.plugins.tooltip
                 }
             },
             onClick: (e, els) => { if (els.length) showEstadoDetail(AppState.charts.byEstado.data.labels[els[0].index]); }
         }
     });
-    console.log('Gráfica byEstado creada:', AppState.charts.byEstado.config.type);
 
     // 4. Margen por Línea de Negocio - Horizontal Bar with gradients
     AppState.charts.margenLinea = new Chart(document.getElementById('topMargenChart'), {
@@ -1156,16 +1143,7 @@ function initCharts() {
             indexAxis: 'y',
             plugins: {
                 ...commonOptions.plugins,
-                legend: { display: false },
-                datalabels: {
-                    display: true,
-                    color: '#ffffff',
-                    font: { weight: 'bold', size: 11 },
-                    formatter: (value) => formatK(value),
-                    anchor: 'end',
-                    align: 'start',
-                    offset: -4
-                }
+                legend: { display: false }
             },
             scales: {
                 x: {

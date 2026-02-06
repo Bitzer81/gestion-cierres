@@ -773,15 +773,42 @@ function renderClients() {
         return;
     }
 
+    // Función para extraer el nombre base del cliente desde el centro
+    // Ej: "ALIMERKA,S.A." -> "ALIMERKA", "BAYER ASTURIAS" -> "BAYER"
+    function extractClientName(centro) {
+        if (!centro || centro === 'Sin centro') return null;
+
+        // Lista de clientes conocidos para matchear
+        const knownClients = ['ALIMERKA', 'CARREFOUR', 'BAYER', 'BASIC-FIT', 'BASICFIT', 'BASIC FIT',
+            'HUCA', 'ALCAMPO', 'MERCADONA', 'EROSKI', 'DIA', 'LIDL', 'ALDI'];
+
+        const centroUpper = centro.toUpperCase();
+
+        // Primero intentar con clientes conocidos
+        for (const client of knownClients) {
+            if (centroUpper.includes(client)) {
+                // Normalizar BASIC-FIT y variantes
+                if (client === 'BASICFIT' || client === 'BASIC FIT') return 'BASIC-FIT';
+                return client;
+            }
+        }
+
+        // Si no es conocido, tomar la primera palabra significativa
+        const firstWord = centro.split(/[\s,\.]+/)[0];
+        return firstWord && firstWord.length > 2 ? firstWord.toUpperCase() : centro;
+    }
+
     const map = {};
     d.forEach(r => {
-        // Usar el campo correcto: nomCliente tiene prioridad
-        const n = r.nomCliente || r.cliente || r.nombre || 'Sin nombre';
-        if (n === 'Sin nombre' || !n.trim()) return;
+        // Extraer nombre de cliente desde el centro
+        const centroRaw = r.centro || r.nomCentro || '';
+        const clientName = extractClientName(centroRaw);
 
-        if (!map[n]) map[n] = {
-            name: n,
-            centers: new Map(), // Usar Map para evitar duplicados de centros
+        if (!clientName) return;
+
+        if (!map[clientName]) map[clientName] = {
+            name: clientName,
+            centers: new Map(),
             totalVenta: 0,
             totalMargen: 0,
             totalCoste: 0,
@@ -789,9 +816,9 @@ function renderClients() {
         };
 
         // Agregar centro único
-        const centroName = r.centro || r.nomCentro || 'Sin centro';
-        if (!map[n].centers.has(centroName)) {
-            map[n].centers.set(centroName, {
+        const centroName = centroRaw || 'Sin centro';
+        if (!map[clientName].centers.has(centroName)) {
+            map[clientName].centers.set(centroName, {
                 name: centroName,
                 venta: 0,
                 coste: 0,
@@ -800,15 +827,15 @@ function renderClients() {
                 estado: r.estado || '-'
             });
         }
-        const centro = map[n].centers.get(centroName);
+        const centro = map[clientName].centers.get(centroName);
         centro.venta += r.venta || 0;
         centro.coste += r.coste || 0;
         centro.margen += r.margen || 0;
 
-        map[n].totalVenta += r.venta || 0;
-        map[n].totalMargen += r.margen || 0;
-        map[n].totalCoste += r.coste || 0;
-        map[n].rowCount++;
+        map[clientName].totalVenta += r.venta || 0;
+        map[clientName].totalMargen += r.margen || 0;
+        map[clientName].totalCoste += r.coste || 0;
+        map[clientName].rowCount++;
     });
 
     // Convertir centers Map a Array y calcular margenPct
@@ -824,7 +851,7 @@ function renderClients() {
 
     const s = document.getElementById('clientSearch');
     if (s) {
-        s.value = ''; // Reset search
+        s.value = '';
         s.oninput = (e) => renderClientList(
             currentClientsData.filter(c =>
                 c.name.toLowerCase().includes(e.target.value.toLowerCase())

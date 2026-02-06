@@ -153,11 +153,11 @@ function initNavigation() {
     const headerSubtitle = document.querySelector('.header-subtitle');
 
     const sectionInfo = {
-        dashboard: { title: 'Resumen General', subtitle: 'Vista combinada de mÃ©tricas y anÃ¡lisis' },
-        clients: { title: 'GestiÃ³n de Clientes', subtitle: 'AnÃ¡lisis detallado por cliente', onEnter: renderClients },
-        history: { title: 'HistÃ³rico de Cierres', subtitle: 'Registros de meses anteriores', onEnter: renderHistory },
+        dashboard: { title: 'Resumen General', subtitle: 'Vista combinada de métricas y análisis' },
+        clients: { title: 'Gestión de Clientes', subtitle: 'Análisis detallado por cliente', onEnter: renderClients },
+        history: { title: 'Histórico de Cierres', subtitle: 'Registros de meses anteriores', onEnter: renderHistory },
         reports: { title: 'Generador de Informes', subtitle: 'Redacción de informe ejecutivo', onEnter: () => { } },
-        settings: { title: 'ConfiguraciÃ³n', subtitle: 'Ajustes del sistema y datos', onEnter: loadSettings }
+        settings: { title: 'Configuración', subtitle: 'Ajustes del sistema y datos', onEnter: loadSettings }
     };
 
     function navigateToSection(sectionId) {
@@ -1736,6 +1736,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error('initNavigation function not found');
     }
+
+    // Initialize Upload Handlers
+    if (typeof initUploadHandlers === 'function') initUploadHandlers();
 
     // Load History
     if (typeof loadHistoryFromStorage === 'function') {

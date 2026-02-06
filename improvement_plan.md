@@ -24,6 +24,11 @@ Este documento detalla la hoja de ruta para optimizar el rendimiento y ampliar l
 
 ## 2. Nuevas Funcionalidades
 
+### ☁️ Sincronización en Nube (Google Drive)
+- **Objetivo**: Integrar Google Drive API para guardar/cargar históricos automáticamente.
+- **Seguridad**: El usuario se autentica con SU cuenta. Los datos nunca salen de su entorno (GitHub Pages <-> Su Google Drive).
+- **Privacidad**: Máxima. No hay servidores intermedios ni bases de datos de terceros.
+
 ### 📊 Análisis Avanzado
 - **Comparativa Multianual**: Poder seleccionar dos períodos arbitrarios para comparar no solo el mes anterior (YoY).
 - **Drill-down Interactivo**: Navegación profunda (Cliente -> Centro -> Línea -> Factura/Detalle).

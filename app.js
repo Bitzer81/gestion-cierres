@@ -156,7 +156,7 @@ function initNavigation() {
         dashboard: { title: 'Resumen General', subtitle: 'Vista combinada de mÃ©tricas y anÃ¡lisis' },
         clients: { title: 'GestiÃ³n de Clientes', subtitle: 'AnÃ¡lisis detallado por cliente', onEnter: renderClients },
         history: { title: 'HistÃ³rico de Cierres', subtitle: 'Registros de meses anteriores', onEnter: renderHistory },
-        reports: { title: 'Generador de Informes', subtitle: 'Redacción de informe ejecutivo', onEnter: () => {} },
+        reports: { title: 'Generador de Informes', subtitle: 'Redacción de informe ejecutivo', onEnter: () => { } },
         settings: { title: 'ConfiguraciÃ³n', subtitle: 'Ajustes del sistema y datos', onEnter: loadSettings }
     };
 
@@ -1651,37 +1651,37 @@ const REPORT_TEMPLATES = {
 window.insertTemplate = (key) => {
     const editor = document.getElementById('reportEditor');
     if (!editor) return;
-    
+
     let text = REPORT_TEMPLATES[key] || '';
-    
+
     // Replace placeholders if data is available
     if (AppState.processedData) {
         const d = AppState.processedData;
         const t = d.totals;
         const mpct = calculateMarginPercentage(t.totalVenta, t.totalMargen).toFixed(1);
-        
+
         text = text.replace('[PERIODO]', d.period || 'Actual')
-                   .replace('[VENTAS]', formatCurrency(t.totalVenta))
-                   .replace('[COSTES]', formatCurrency(t.totalCoste))
-                   .replace('[MARGEN]', formatCurrency(t.totalMargen))
-                   .replace('[MARGEN_PCT]', mpct);
-                   
+            .replace('[VENTAS]', formatCurrency(t.totalVenta))
+            .replace('[COSTES]', formatCurrency(t.totalCoste))
+            .replace('[MARGEN]', formatCurrency(t.totalMargen))
+            .replace('[MARGEN_PCT]', mpct);
+
         // Simple Top lists logic if needed (can be enhanced)
         if (key === 'topClients' && currentClientsData.length) {
-            const top5 = currentClientsData.slice(0, 5).map(c => 
-                - :  (Mg: %)
+            const top5 = currentClientsData.slice(0, 5).map(c =>
+                - : (Mg: %)
             ).join('\n');
             text = text.replace('[LISTA_TOP_CLIENTES]', top5);
         }
-        
+
         if (key === 'issues' && d.rows) {
-             const issues = d.rows.filter(r => r.margenPct < 20 && r.venta > 1000).slice(0, 5)
+            const issues = d.rows.filter(r => r.margenPct < 20 && r.venta > 1000).slice(0, 5)
                 .map(r => -  (): Mg %)
                 .join('\n');
-             text = text.replace('[LISTA_BAJO_MARGEN]', issues || 'No se detectaron incidencias mayores.');
+            text = text.replace('[LISTA_BAJO_MARGEN]', issues || 'No se detectaron incidencias mayores.');
         }
     }
-    
+
     editor.value += text;
     editor.scrollTop = editor.scrollHeight;
 };
@@ -1690,7 +1690,7 @@ window.generateAutoReport = () => {
     const editor = document.getElementById('reportEditor');
     if (!editor) return;
     editor.value = '';
-    
+
     // Insert all templates sequentially
     ['intro', 'kpis', 'topClients', 'issues', 'conclusions'].forEach(key => insertTemplate(key));
     showToast('Informe generado automáticamente', 'success');
@@ -1707,18 +1707,18 @@ window.copyReportToClipboard = () => {
 window.exportReportPDF = () => {
     const text = document.getElementById('reportEditor').value;
     if (!text) { showToast('El informe está vacío', 'warning'); return; }
-    
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    
+
     doc.setFont('helvetica');
     doc.setFontSize(16);
     doc.text('Informe Ejecutivo de Cierre', 20, 20);
-    
+
     doc.setFontSize(11);
     const splitText = doc.splitTextToSize(text, 170);
     doc.text(splitText, 20, 40);
-    
+
     doc.save('Informe_Cierre.pdf');
     showToast('Informe descargado', 'success');
 };
@@ -1729,31 +1729,26 @@ window.exportReportPDF = () => {
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing CierresPro...');
-    
+
     // Initialize Navigation
-    if(typeof initNavigation === 'function') {
+    if (typeof initNavigation === 'function') {
         initNavigation();
     } else {
         console.error('initNavigation function not found');
     }
-    
+
     // Load History
-    if(typeof loadHistoryFromStorage === 'function') {
+    if (typeof loadHistoryFromStorage === 'function') {
         loadHistoryFromStorage();
     }
-    
+
     // Load Settings
-    if(typeof loadSettings === 'function') {
+    if (typeof loadSettings === 'function') {
         loadSettings();
     }
-    
-    // Initialize Google Drive (loaded via script tag onload, but double check)
-    if(window.initGoogle) {
-        // window.initGoogle(); // Already called by script onload, but safe to call if needed? No, let's leave it to the script tag.
-    }
-    
+
     // Default to Dashboard
-    if(window.navigateToSection) {
+    if (window.navigateToSection) {
         window.navigateToSection('dashboard');
     }
 });

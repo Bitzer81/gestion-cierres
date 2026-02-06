@@ -15,13 +15,19 @@ const APP_FOLDER_NAME = 'CierresPro_Data';
 const BACKUP_FILE_NAME = 'CierresPro_Backup.json';
 
 window.initGoogle = () => {
+    // Safety check: wait for gapi to be available
+    if (typeof gapi === 'undefined') {
+        console.warn('Google API not loaded yet');
+        return;
+    }
+
     // Load config from local storage
     const creds = JSON.parse(localStorage.getItem('cpro_google_creds') || '{}');
     if (creds.apiKey) {
         gapi.load('client', () => initializeGapiClient(creds.apiKey));
     }
 
-    if (creds.clientId) {
+    if (creds.clientId && typeof google !== 'undefined' && google.accounts) {
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: creds.clientId,
             scope: SCOPES,
@@ -29,7 +35,6 @@ window.initGoogle = () => {
                 if (resp.error) throw resp;
                 showToast('Conectado a Google Drive', 'success');
                 updateGoogleStatus(true);
-                // Auto-sync after login if needed
             },
         });
         gisInited = true;
@@ -37,7 +42,8 @@ window.initGoogle = () => {
 
     // Bind UI events
     bindGoogleEvents();
-    checkAuthStatus();
+    // Only check auth if gapi client is ready
+    if (gapiInited) checkAuthStatus();
 };
 
 async function initializeGapiClient(apiKey) {
@@ -52,15 +58,17 @@ async function initializeGapiClient(apiKey) {
 function bindGoogleEvents() {
     const saveBtn = document.getElementById('saveGoogleCreds');
     const loginBtn = document.getElementById('googleSignInBtn');
+    const clientIdInput = document.getElementById('gClientId');
+    const apiKeyInput = document.getElementById('gApiKey');
 
-    // Set initial values
+    // Set initial values (with null checks)
     const creds = JSON.parse(localStorage.getItem('cpro_google_creds') || '{}');
-    if (creds.clientId) document.getElementById('gClientId').value = creds.clientId;
-    if (creds.apiKey) document.getElementById('gApiKey').value = creds.apiKey;
+    if (creds.clientId && clientIdInput) clientIdInput.value = creds.clientId;
+    if (creds.apiKey && apiKeyInput) apiKeyInput.value = creds.apiKey;
 
     if (saveBtn) saveBtn.onclick = () => {
-        const id = document.getElementById('gClientId').value.trim();
-        const key = document.getElementById('gApiKey').value.trim();
+        const id = clientIdInput ? clientIdInput.value.trim() : '';
+        const key = apiKeyInput ? apiKeyInput.value.trim() : '';
         if (!id || !key) {
             showToast('Introduce Client ID y API Key', 'warning');
             return;
@@ -79,17 +87,22 @@ function handleAuthClick() {
         return;
     }
 
+    // Safety check for gapi client
+    if (!gapi.client) {
+        showToast('API de Google no cargada. Recarga la página.', 'error');
+        return;
+    }
+
     const token = gapi.client.getToken();
     if (token) {
-        // Already logged in, maybe ask to logout?
+        // Already logged in, ask to logout
         if (confirm('¿Quieres cerrar sesión de Google?')) {
-            const token = gapi.client.getToken();
-            if (token !== null) {
+            if (token.access_token) {
                 google.accounts.oauth2.revoke(token.access_token);
-                gapi.client.setToken('');
-                updateGoogleStatus(false);
-                showToast('Sesión cerrada', 'info');
             }
+            gapi.client.setToken(null);
+            updateGoogleStatus(false);
+            showToast('Sesión cerrada', 'info');
         }
     } else {
         tokenClient.requestAccessToken({ prompt: 'consent' });

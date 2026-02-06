@@ -1,6 +1,6 @@
 ﻿/* ========================================
    CierresPro - Professional CRM & Analytics
-   Reorganized & Optimized Version 1.5.1
+   Reorganized & Optimized Version 1.5.2
    ======================================== */
 
 
@@ -1723,36 +1723,3 @@ window.exportReportPDF = () => {
     doc.save('Informe_Cierre.pdf');
     showToast('Informe descargado', 'success');
 };
-
-
-// ========================================
-// 15. Initialization
-// ========================================
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Initializing CierresPro...');
-
-    // Initialize Navigation
-    if (typeof initNavigation === 'function') {
-        initNavigation();
-    } else {
-        console.error('initNavigation function not found');
-    }
-
-    // Initialize Upload Handlers
-    if (typeof initUploadHandlers === 'function') initUploadHandlers();
-
-    // Load History
-    if (typeof loadHistoryFromStorage === 'function') {
-        loadHistoryFromStorage();
-    }
-
-    // Load Settings
-    if (typeof loadSettings === 'function') {
-        loadSettings();
-    }
-
-    // Default to Dashboard
-    if (window.navigateToSection) {
-        window.navigateToSection('dashboard');
-    }
-});

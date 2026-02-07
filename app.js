@@ -32,6 +32,9 @@ const AppState = {
     charts: {}
 };
 
+// Modal state (declared early to avoid hoisting issues)
+let currentModalRows = [];
+
 // Column mapping for Excel structure (Version 48 columns)
 const EXCEL_COLUMNS = {
     planta: 'Planta',
@@ -107,26 +110,21 @@ function initClientsHubHandlers() {
 
     if (btn) btn.addEventListener('click', openClientsHub);
     if (closeBtn) closeBtn.onclick = () => modal.style.display = 'none';
-
-    // Extender el handler de window.onclick existente
-    const oldWinClick = window.onclick;
-    window.onclick = (e) => {
-        if (oldWinClick) oldWinClick(e);
-        if (e.target == modal) modal.style.display = 'none';
-    };
 }
 
 function initModalHandlers() {
-    const modal = document.getElementById('detailModal');
+    const detailModal = document.getElementById('detailModal');
+    const clientsHubModal = document.getElementById('clientsHubModal');
     const closeBtn = document.getElementById('closeModal');
     const searchInput = document.getElementById('modalSearch');
 
-    if (closeBtn) closeBtn.onclick = () => modal.style.display = 'none';
+    if (closeBtn) closeBtn.onclick = () => detailModal.style.display = 'none';
 
-    // Global click to close
-    window.onclick = (e) => {
-        if (e.target == modal) modal.style.display = 'none';
-    };
+    // Single global click handler for all modals (using addEventListener to avoid overwriting)
+    window.addEventListener('click', (e) => {
+        if (e.target === detailModal) detailModal.style.display = 'none';
+        if (e.target === clientsHubModal) clientsHubModal.style.display = 'none';
+    });
 
     // Search functionality
     if (searchInput) {
@@ -650,13 +648,13 @@ function updateKPIs(data) {
 function updateYoYBadge(el, v) {
     el.style.display = 'inline-flex';
     el.className = `kpi-badge yoy ${v >= 0 ? 'positive' : 'negative'}`;
-    el.textContent = `${v >= 0 ? 'â–²' : 'â–¼'} ${Math.abs(v).toFixed(1)}% YoY`;
+    el.textContent = `${v >= 0 ? '▲' : '▼'} ${Math.abs(v).toFixed(1)}% YoY`;
 }
 
 function updateBudgetBadge(el, v) {
     el.style.display = 'inline-flex';
     el.className = `kpi-badge budget ${v >= 100 ? 'positive' : 'warning'}`;
-    el.textContent = `ðŸŽ¯ ${v.toFixed(0)}%`;
+    el.textContent = `🎯 ${v.toFixed(0)}%`;
 }
 
 function updateDataTable(rows) {
@@ -791,7 +789,7 @@ function renderClients() {
         return;
     }
 
-    // FunciÃ³n para extraer el nombre base del cliente desde el centro
+    // Función para extraer el nombre base del cliente desde el centro
     // Ej: "ALIMERKA,S.A." -> "ALIMERKA", "BAYER ASTURIAS" -> "BAYER"
     function extractClientName(centro) {
         if (!centro || centro === 'Sin centro') return null;
@@ -1120,7 +1118,7 @@ function initCharts() {
         }
     };
 
-    // 1. EvoluciÃ³n Mensual - Line Chart with gradient fill
+    // 1. Evolución Mensual - Line Chart with gradient fill
     const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
     const gradientRevenue = monthlyCtx.createLinearGradient(0, 0, 0, 280);
     gradientRevenue.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
@@ -1231,7 +1229,7 @@ function initCharts() {
         }
     });
 
-    // 3. DistribuciÃ³n por Estado - Doughnut Chart
+    // 3. Distribución por Estado - Doughnut Chart
     AppState.charts.byEstado = new Chart(document.getElementById('topVentasChart'), {
         type: 'doughnut',
         data: {
@@ -1262,13 +1260,13 @@ function initCharts() {
         }
     });
 
-    // 4. Margen por LÃ­nea de Negocio - Horizontal Bar with gradients
+    // 4. Margen por Línea de Negocio - Horizontal Bar with gradients
     AppState.charts.margenLinea = new Chart(document.getElementById('topMargenChart'), {
         type: 'bar',
         data: {
             labels: [],
             datasets: [{
-                label: 'Margen (â‚¬)',
+                label: 'Margen (€)',
                 data: [],
                 backgroundColor: function (context) {
                     const chart = context.chart;
@@ -1297,7 +1295,7 @@ function initCharts() {
                     grid: { color: 'rgba(226, 232, 240, 0.5)' },
                     ticks: {
                         callback: function (value) {
-                            return (value / 1000).toFixed(0) + 'K â‚¬';
+                            return (value / 1000).toFixed(0) + 'K €';
                         }
                     }
                 },
@@ -1313,16 +1311,14 @@ function initCharts() {
         }
     });
 
-    // Store estado colors for dynamic use
     AppState.estadoColors = estadoColors;
-    initModalHandlers();
 }
 
 function updateCharts(byL, byC) {
-    // 1. Ventas por LÃ­nea de Negocio (Doughnut)
+    // 1. Ventas por Línea de Negocio (Doughnut)
     if (AppState.charts.distribution) {
         const ls = Object.keys(byL)
-            .filter(l => l && l.trim() !== '' && l !== 'Sin LÃ­nea')
+            .filter(l => l && l.trim() !== '' && l !== 'Sin Línea')
             .sort((a, b) => byL[b].venta - byL[a].venta)
             .slice(0, 8);
         AppState.charts.distribution.data.labels = ls;
@@ -1330,7 +1326,7 @@ function updateCharts(byL, byC) {
         AppState.charts.distribution.update();
     }
 
-    // 2. DistribuciÃ³n por Estado (Doughnut)
+    // 2. Distribución por Estado (Doughnut)
     if (AppState.charts.byEstado && AppState.processedData) {
         const byEstado = {};
         AppState.processedData.rows.forEach(r => {
@@ -1352,7 +1348,7 @@ function updateCharts(byL, byC) {
             'rgba(16, 185, 129, 0.85)',   // Verde
             'rgba(59, 130, 246, 0.85)',    // Azul
             'rgba(249, 115, 22, 0.85)',    // Naranja
-            'rgba(139, 92, 246, 0.85)',    // PÃºrpura
+            'rgba(139, 92, 246, 0.85)',    // Púrpura
             'rgba(236, 72, 153, 0.85)',    // Rosa
             'rgba(234, 179, 8, 0.85)',     // Amarillo
             'rgba(20, 184, 166, 0.85)',    // Teal
@@ -1365,10 +1361,10 @@ function updateCharts(byL, byC) {
         AppState.charts.byEstado.update();
     }
 
-    // 3. Margen por LÃ­nea de Negocio (Horizontal Bar)
+    // 3. Margen por Línea de Negocio (Horizontal Bar)
     if (AppState.charts.margenLinea) {
         const topLineas = Object.keys(byL)
-            .filter(l => l && l.trim() !== '' && l !== 'Sin LÃ­nea')
+            .filter(l => l && l.trim() !== '' && l !== 'Sin Línea')
             .map(l => ({ name: l, margen: byL[l].margen, venta: byL[l].venta }))
             .sort((a, b) => b.margen - a.margen)
             .slice(0, 6);
@@ -1387,14 +1383,12 @@ function updateMonthlyChart() {
 }
 
 function initDynamicClientChart(id) {
-    AppState.charts[id] = new Chart(document.getElementById(`${id}Chart`), { type: 'bar', data: { labels: [], datasets: [{ label: 'Venta (â‚¬)', backgroundColor: '#6366f1' }] }, options: { responsive: true, maintainAspectRatio: false } });
+    AppState.charts[id] = new Chart(document.getElementById(`${id}Chart`), { type: 'bar', data: { labels: [], datasets: [{ label: 'Venta (€)', backgroundColor: '#6366f1' }] }, options: { responsive: true, maintainAspectRatio: false } });
 }
 
 // ========================================
 // 10. Interactivity (Modals)
 // ========================================
-// Store current modal rows for searching
-let currentModalRows = [];
 
 function renderModalTable(rows) {
     const tableBody = document.getElementById('modalTableBody');
@@ -1436,7 +1430,7 @@ function showDetailModal(center) {
     document.getElementById('modalTitle').textContent = `Detalle: ${center}`;
     if (searchInput) searchInput.value = '';
 
-    document.getElementById('modalKPIs').innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(d.venta)}</strong></div><div class="kpi-card"><span>Margen (â‚¬)</span><strong>${formatCurrency(d.margen)}</strong></div><div class="kpi-card"><span>Rendimiento</span><strong>${calculateMarginPercentage(d.venta, d.margen).toFixed(1)}%</strong></div>`;
+    document.getElementById('modalKPIs').innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(d.venta)}</strong></div><div class="kpi-card"><span>Margen (€)</span><strong>${formatCurrency(d.margen)}</strong></div><div class="kpi-card"><span>Rendimiento</span><strong>${calculateMarginPercentage(d.venta, d.margen).toFixed(1)}%</strong></div>`;
 
     currentModalRows = AppState.processedData.rows.filter(r => r.centro === center);
     renderModalTable(currentModalRows);
@@ -1448,7 +1442,7 @@ function showBusinessLineDetail(line) {
     const modal = document.getElementById('detailModal'); if (!AppState.processedData) return;
     const searchInput = document.getElementById('modalSearch');
 
-    document.getElementById('modalTitle').textContent = `LÃ­nea: ${line}`;
+    document.getElementById('modalTitle').textContent = `Línea: ${line}`;
     if (searchInput) searchInput.value = '';
 
     currentModalRows = AppState.processedData.rows.filter(r => r.lineaNegocio === line);
@@ -1621,7 +1615,7 @@ async function exportToPDF(id, name) {
 }
 
 function openClientsHub() {
-    if (!AppState.processedData) return showToast('Primero carga los datos del perÃ­odo', 'warning');
+    if (!AppState.processedData) return showToast('Primero carga los datos del período', 'warning');
 
     const d = AppState.processedData.rows;
     const map = {};

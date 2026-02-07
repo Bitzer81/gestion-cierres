@@ -1,8 +1,17 @@
 ﻿/* ========================================
    CierresPro - Professional CRM & Analytics
-   Reorganized & Optimized Version 1.5.2
+   Reorganized & Optimized Version 1.6.0
    ======================================== */
 
+// ========================================
+// 0. Constants & Configuration
+// ========================================
+const STORAGE_KEYS = {
+    HISTORY: 'cierresPro_history',
+    SETTINGS: 'cierresPro_settings',
+    GOOGLE_CREDS: 'cpro_google_creds',
+    MANAGED_CLIENTS: 'cpro_managed_clients'
+};
 
 // ========================================
 // 1. Data Store (State Management)
@@ -34,10 +43,10 @@ const EXCEL_COLUMNS = {
     nomCentro: 'Nom_centro',
     lineaNegocio: 'Lin_negocio',
     tipo: 'Tipo',
-    numero: 'NÃºmero',
+    numero: 'Número',
     nombre: 'Nombre',
     estado: 'Estado',
-    categoria: 'CategorÃ­a',
+    categoria: 'Categoría',
     apertura: 'Apertura',
     cierre: 'Cierre',
     ultFactura: 'Ult_factura',
@@ -283,7 +292,7 @@ function handleFile(file) {
             const workbook = XLSX.read(data, { type: 'array' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-            if (!jsonData.length) return showToast('El archivo estÃ¡ vacÃ­o', 'error');
+            if (!jsonData.length) return showToast('El archivo está vacío', 'error');
 
             AppState.currentData = {
                 fileName: file.name,
@@ -292,7 +301,7 @@ function handleFile(file) {
                 rawWorkbook: workbook
             };
             showPreview(AppState.currentData);
-            showToast('Archivo leÃ­do correctamente', 'success');
+            showToast('Archivo leído correctamente', 'success');
         } catch (error) {
             showToast('Error al leer el archivo: ' + error.message, 'error');
         }
@@ -375,7 +384,7 @@ function processData(data) {
     });
 
     if (colIdx.venta === -1 || colIdx.coste === -1) {
-        throw new Error('No se han encontrado las columnas de "Venta" o "Coste". Revisa la configuraciÃ³n o usa la plantilla.');
+        throw new Error('No se han encontrado las columnas de "Venta" o "Coste". Revisa la configuración o usa la plantilla.');
     }
 
     let totalV = 0, totalC = 0, totalM = 0, totalPV = 0, totalPC = 0;
@@ -392,17 +401,17 @@ function processData(data) {
         const codCli = String(row[colIdx.codCliente] || '').trim();
         const codCen = String(row[colIdx.codCentro] || '').trim();
 
-        // Para validaciÃ³n usamos el nombre del cliente o el del pedido
+        // Para validación usamos el nombre del cliente o el del pedido
         const nameRaw = nomCliente || nombrePedido;
         const name = nameRaw.toUpperCase();
         const centro = centroRaw;
-        const linea = String(row[colIdx.lineaNegocio] || 'Sin LÃ­nea').trim();
+        const linea = String(row[colIdx.lineaNegocio] || 'Sin Línea').trim();
         const estado = String(row[colIdx.estado] || 'Sin Estado').trim();
 
-        // 1. FILTRADO DE FILAS VACÃAS O DE ENCABEZADO REPETIDO
+        // 1. FILTRADO DE FILAS VACÍAS O DE ENCABEZADO REPETIDO
         if (!name || name === 'UNDEFINED' || name === 'NULL' || name === 'NOMBRE' || name === 'NOM_CLIENTE') return;
 
-        // 2. FILTRADO ULTRA-ESTRICTO DE SUB-TOTALES Y RESÃšMENES
+        // 2. FILTRADO ULTRA-ESTRICTO DE SUB-TOTALES Y RESÚMENES
         const isSummaryRow = row.some(cell => {
             if (typeof cell !== 'string') return false;
             const c = cell.toUpperCase();
@@ -661,7 +670,7 @@ function updateDataTable(rows) {
         </tr>`;
     }).join('') : '<tr class="empty-state"><td colspan="7">No hay datos</td></tr>';
     const header = document.querySelector('.table-header h3');
-    if (header) header.textContent = `Detalle del PerÃ­odo (${rows.length} registros)`;
+    if (header) header.textContent = `Detalle del Período (${rows.length} registros)`;
 }
 
 function renderAnalysis() {
@@ -689,7 +698,7 @@ function generateSmartSummary(d) {
     const mP = calculateMarginPercentage(d.totals.totalVenta, d.totals.totalMargen);
     const cs = Object.keys(d.byCenter).map(c => ({ name: c, ...d.byCenter[c], pct: calculateMarginPercentage(d.byCenter[c].venta, d.byCenter[c].margen) }));
     const top = cs.sort((a, b) => b.margen - a.margen)[0];
-    return `<div style="line-height:1.6"><strong>Resumen Ejecutivo:</strong> Ventas de <strong>${formatCurrency(d.totals.totalVenta)}</strong> con margen de <strong>${formatCurrency(d.totals.totalMargen)}</strong> (${mP.toFixed(1)}%).<br><strong>Puntos Clave:</strong> Mayor contribuciÃ³n de <em>${top?.name || 'N/A'}</em>. Se detectan <strong>${cs.filter(c => c.pct < 20).length}</strong> centros crÃ­ticos.</div>`;
+    return `<div style="line-height:1.6"><strong>Resumen Ejecutivo:</strong> Ventas de <strong>${formatCurrency(d.totals.totalVenta)}</strong> con margen de <strong>${formatCurrency(d.totals.totalMargen)}</strong> (${mP.toFixed(1)}%).<br><strong>Puntos Clave:</strong> Mayor contribución de <em>${top?.name || 'N/A'}</em>. Se detectan <strong>${cs.filter(c => c.pct < 20).length}</strong> centros críticos.</div>`;
 }
 
 function truncateText(t, l) { return t?.length > l ? t.substring(0, l) + '...' : t; }
@@ -817,7 +826,7 @@ function renderClients() {
             rowCount: 0
         };
 
-        // Agregar centro Ãºnico
+        // Agregar centro único
         const centroName = centroRaw || 'Sin centro';
         if (!map[clientName].centers.has(centroName)) {
             map[clientName].centers.set(centroName, {
@@ -876,7 +885,7 @@ function renderClientList(cs) {
             <div class="client-metrics">
                 <span>${c.centers.length} Centros</span>
                 <span style="color:${c.totalMargen >= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'}" class="${isLow ? 'critical-margin' : ''}">
-                    ${isLow ? 'âš ï¸ ' : ''}${mPct.toFixed(1)}%
+                    ${isLow ? '⚠️ ' : ''}${mPct.toFixed(1)}%
                 </span>
             </div>
         </div>`;
@@ -894,13 +903,13 @@ window.selectClient = (name) => {
     v.innerHTML = `
         <div class="client-detail-header" style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--bg-tertiary); border-radius: 12px; margin-bottom: 20px;">
             <div>
-                <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-primary);">ðŸ‘¤ ${c.name}</h2>
-                <span style="color: var(--text-muted); font-size: 0.9rem;">${c.centers.length} centros â€¢ ${c.rowCount || c.centers.length} registros</span>
+                <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-primary);">👤 ${c.name}</h2>
+                <span style="color: var(--text-muted); font-size: 0.9rem;">${c.centers.length} centros • ${c.rowCount || c.centers.length} registros</span>
             </div>
             <div style="text-align: right;">
                 <div style="font-size: 1.3rem; font-weight: 700; color: var(--accent-success);">${formatCurrency(c.totalVenta)}</div>
                 <span class="${isLowTotal ? 'critical-margin' : ''}" style="font-size: 0.95rem;">
-                    ${isLowTotal ? 'âš ï¸ ' : 'âœ… '}Margen: ${mTotal.toFixed(1)}%
+                    ${isLowTotal ? '⚠️ ' : '✅ '}Margen: ${mTotal.toFixed(1)}%
                 </span>
             </div>
         </div>
@@ -924,16 +933,16 @@ window.selectClient = (name) => {
             </div>
         </div>
         
-        <h3 style="margin-bottom: 12px; color: var(--text-secondary);">ðŸ“ Centros de ${c.name}</h3>
+        <h3 style="margin-bottom: 12px; color: var(--text-secondary);">🔍 Centros de ${c.name}</h3>
         <div style="overflow-x: auto; max-height: 350px; overflow-y: auto;">
             <table class="modal-table" style="min-width: 600px;">
                 <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
                     <tr>
                         <th>Centro</th>
-                        <th>LÃ­nea</th>
-                        <th class="text-right">Venta (â‚¬)</th>
-                        <th class="text-right">Coste (â‚¬)</th>
-                        <th class="text-right">Margen (â‚¬)</th>
+                        <th>Línea</th>
+                        <th class="text-right">Venta (€)</th>
+                        <th class="text-right">Coste (€)</th>
+                        <th class="text-right">Margen (€)</th>
                         <th class="text-right">% Margen</th>
                     </tr>
                 </thead>
@@ -947,7 +956,7 @@ window.selectClient = (name) => {
                             <td class="text-right">${formatCurrency(r.venta)}</td>
                             <td class="text-right" style="color: var(--accent-danger);">${formatCurrency(r.coste)}</td>
                             <td class="text-right ${r.margen >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(r.margen)}</td>
-                            <td class="text-right ${isLow ? 'critical-margin' : ''}">${isLow ? 'âš ï¸ ' : ''}${r.margenPct.toFixed(1)}%</td>
+                            <td class="text-right ${isLow ? 'critical-margin' : ''}">${isLow ? '⚠️ ' : ''}${r.margenPct.toFixed(1)}%</td>
                         </tr>`;
     }).join('')}
                 </tbody>
@@ -972,20 +981,28 @@ function renderClientSettingsList() {
 }
 
 window.removeManagedClient = (i) => {
-    if (confirm(`Â¿Eliminar dashboard de ${AppState.managedClients[i].name}?`)) { AppState.managedClients.splice(i, 1); saveManagedClients(); renderClientSettingsList(); refreshDynamicSections(); window.refreshNavigation(); }
+    if (confirm(`¿Eliminar dashboard de ${AppState.managedClients[i].name}?`)) { AppState.managedClients.splice(i, 1); saveManagedClients(); renderClientSettingsList(); refreshDynamicSections(); window.refreshNavigation(); }
 };
 
 function refreshDynamicSections() {
-    // Ya no generamos secciones dinÃ¡micas para simplificar la pÃ¡gina.
-    // Los clientes favoritos se mostrarÃ¡n dentro de la vista de "Clientes".
+    // Ya no generamos secciones dinámicas para simplificar la página.
+    // Los clientes favoritos se mostrarán dentro de la vista de "Clientes".
 }
 
 function renderClientDashboard(name, id) {
     if (!AppState.processedData) return;
     const rows = AppState.processedData.rows.filter(r => String(r.cliente).toUpperCase().includes(name));
     const tots = rows.reduce((a, r) => { a.v += r.venta; a.m += r.margen; return a; }, { v: 0, m: 0 });
-    document.getElementById(`${id}KPIs`).innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(tots.v)}</strong></div><div class="kpi-card"><span>Margen (â‚¬)</span><strong>${formatCurrency(tots.m)}</strong></div><div class="kpi-card"><span>Margen (%)</span><strong>${calculateMarginPercentage(tots.v, tots.m).toFixed(1)}%</strong></div><div class="kpi-card"><span>Centros</span><strong>${rows.length}</strong></div>`;
-    document.getElementById(`${id}TableBody`).innerHTML = rows.map(r => `<tr><td>${r.centro}</td><td>${r.lineaNegocio}</td><td class="text-right">${formatCurrency(r.venta)}</td><td class="text-right">${r.margenPct.toFixed(1)}%</td></tr>`).join('');
+
+    const kpisEl = document.getElementById(`${id}KPIs`);
+    const tableEl = document.getElementById(`${id}TableBody`);
+
+    if (kpisEl) {
+        kpisEl.innerHTML = `<div class="kpi-card"><span>Ventas</span><strong>${formatCurrency(tots.v)}</strong></div><div class="kpi-card"><span>Margen (€)</span><strong>${formatCurrency(tots.m)}</strong></div><div class="kpi-card"><span>Margen (%)</span><strong>${calculateMarginPercentage(tots.v, tots.m).toFixed(1)}%</strong></div><div class="kpi-card"><span>Centros</span><strong>${rows.length}</strong></div>`;
+    }
+    if (tableEl) {
+        tableEl.innerHTML = rows.map(r => `<tr><td>${r.centro}</td><td>${r.lineaNegocio}</td><td class="text-right">${formatCurrency(r.venta)}</td><td class="text-right">${r.margenPct.toFixed(1)}%</td></tr>`).join('');
+    }
     const ch = AppState.charts[id];
     if (ch) { const map = rows.reduce((a, r) => { a[r.centro] = (a[r.centro] || 0) + r.venta; return a; }, {}); ch.data.labels = Object.keys(map); ch.data.datasets[0].data = Object.values(map); ch.update(); }
 }
@@ -1017,14 +1034,14 @@ function initCharts() {
         'default': { bg: 'rgba(100, 116, 139, 0.85)', border: '#475569' }
     };
 
-    // FunciÃ³n para formatear valores en Kâ‚¬
+    // Función para formatear valores en K€
     const formatK = (value) => {
         if (Math.abs(value) >= 1000000) {
-            return (value / 1000000).toFixed(1) + 'Mâ‚¬';
+            return (value / 1000000).toFixed(1) + 'M€';
         } else if (Math.abs(value) >= 1000) {
-            return (value / 1000).toFixed(0) + 'Kâ‚¬';
+            return (value / 1000).toFixed(0) + 'K€';
         }
-        return value.toFixed(0) + 'â‚¬';
+        return value.toFixed(0) + '€';
     };
 
     const commonOptions = {
@@ -1146,7 +1163,7 @@ function initCharts() {
                     grid: { color: 'rgba(226, 232, 240, 0.6)' },
                     ticks: {
                         callback: function (value) {
-                            return (value / 1000).toFixed(0) + 'K â‚¬';
+                            return (value / 1000).toFixed(0) + 'K €';
                         }
                     }
                 },
@@ -1155,7 +1172,7 @@ function initCharts() {
         }
     });
 
-    // 2. Ventas por LÃ­nea de Negocio - Enhanced Doughnut with values
+    // 2. Ventas por Línea de Negocio - Enhanced Doughnut with values
     AppState.charts.distribution = new Chart(document.getElementById('costDistributionChart'), {
         type: 'doughnut',
         data: {
@@ -1317,7 +1334,7 @@ function updateCharts(byL, byC) {
         });
 
         // Debug: Log unique estados encontrados
-        console.log('Estados Ãºnicos encontrados:', Object.keys(byEstado));
+        console.log('Estados únicos encontrados:', Object.keys(byEstado));
 
         const estados = Object.keys(byEstado)
             .filter(e => e && e.trim() !== '' && e !== 'Sin Estado')
@@ -1499,8 +1516,8 @@ function renderHistory() {
         return `
         <div class="history-card" onclick="loadHistoryItem(${idx})">
             <div class="history-header">
-                <span>ðŸ“… ${item.period}</span>
-                <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteHistoryItem(${idx})" title="Eliminar">Ã—</button>
+                <span>📅 ${item.period}</span>
+                <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteHistoryItem(${idx})" title="Eliminar">×</button>
             </div>
             <div class="history-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div class="history-stat-item">
@@ -1520,12 +1537,12 @@ function renderHistory() {
                     <div class="value ${margenPct < 20 ? 'negative' : 'positive'}">${margenPct}%</div>
                 </div>
             </div>
-            ${rowCount > 0 ? `<div style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);">ðŸ“‹ ${rowCount} registros</div>` : ''}
+            ${rowCount > 0 ? `<div style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);">📋 ${rowCount} registros</div>` : ''}
         </div>`;
     }).join('');
 }
 
-window.deleteHistoryItem = (i) => { if (confirm('Â¿Eliminar registro?')) { AppState.historicalData.splice(i, 1); localStorage.setItem('cierresPro_history', JSON.stringify(AppState.historicalData)); renderHistory(); updateMonthlyChart(); } };
+window.deleteHistoryItem = (i) => { if (confirm('¿Eliminar registro?')) { AppState.historicalData.splice(i, 1); localStorage.setItem('cierresPro_history', JSON.stringify(AppState.historicalData)); renderHistory(); updateMonthlyChart(); } };
 window.loadHistoryItem = (i) => {
     const it = AppState.historicalData[i]; if (!it) return;
     AppState.processedData = it; updateDashboard(it); document.getElementById('currentPeriod').textContent = it.period; window.navigateToSection('dashboard');
@@ -1559,9 +1576,26 @@ function importHistory() {
     const i = document.createElement('input'); i.type = 'file'; i.accept = '.json';
     i.onchange = (e) => {
         const reader = new FileReader();
-        reader.onload = (ev) => { try { const d = JSON.parse(ev.target.result); if (Array.isArray(d)) { AppState.historicalData = d; localStorage.setItem('cierresPro_history', JSON.stringify(d)); renderHistory(); updateMonthlyChart(); showToast('Backup restaurado', 'success'); } } catch (err) { } };
+        reader.onload = (ev) => {
+            try {
+                const d = JSON.parse(ev.target.result);
+                if (Array.isArray(d)) {
+                    AppState.historicalData = d;
+                    localStorage.setItem('cierresPro_history', JSON.stringify(d));
+                    renderHistory();
+                    updateMonthlyChart();
+                    showToast('Backup restaurado', 'success');
+                } else {
+                    showToast('El archivo no contiene datos válidos', 'warning');
+                }
+            } catch (err) {
+                showToast('Error al importar: JSON inválido', 'error');
+                console.error('Import error:', err);
+            }
+        };
         reader.readAsText(e.target.files[0]);
-    }; i.click();
+    };
+    i.click();
 }
 
 // ========================================
@@ -1619,6 +1653,7 @@ function openClientsHub() {
 window.viewClientDetailFromHub = (name) => {
     document.getElementById('clientsHubModal').style.display = 'none';
     window.navigateToSection('clients');
+    // Increased timeout for slower connections/devices
     setTimeout(() => {
         window.selectClient(name);
         const searchInput = document.getElementById('clientSearch');
@@ -1626,7 +1661,7 @@ window.viewClientDetailFromHub = (name) => {
             searchInput.value = name;
             searchInput.dispatchEvent(new Event('input'));
         }
-    }, 100);
+    }, 300);
 };
 
 // Global Exports
@@ -1697,12 +1732,21 @@ window.generateAutoReport = () => {
     showToast('Informe generado automáticamente', 'success');
 };
 
-window.copyReportToClipboard = () => {
+window.copyReportToClipboard = async () => {
     const editor = document.getElementById('reportEditor');
     if (!editor) return;
-    editor.select();
-    document.execCommand('copy');
-    showToast('Copiado al portapapeles', 'success');
+
+    const text = editor.value;
+    try {
+        // Modern Clipboard API
+        await navigator.clipboard.writeText(text);
+        showToast('Copiado al portapapeles', 'success');
+    } catch (err) {
+        // Fallback for older browsers or non-HTTPS
+        editor.select();
+        document.execCommand('copy');
+        showToast('Copiado al portapapeles', 'success');
+    }
 };
 
 window.exportReportPDF = () => {

@@ -14,12 +14,26 @@ const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/res
 const APP_FOLDER_NAME = 'CierresPro_Data';
 const BACKUP_FILE_NAME = 'CierresPro_Backup.json';
 
+// Retry configuration
+const MAX_INIT_RETRIES = 10;
+const RETRY_DELAY_MS = 500;
+let initRetryCount = 0;
+
 window.initGoogle = () => {
-    // Safety check: wait for gapi to be available
+    // Safety check: wait for gapi to be available with retry
     if (typeof gapi === 'undefined') {
-        console.warn('Google API not loaded yet');
+        initRetryCount++;
+        if (initRetryCount <= MAX_INIT_RETRIES) {
+            console.log(`Google API not loaded yet. Retry ${initRetryCount}/${MAX_INIT_RETRIES}...`);
+            setTimeout(window.initGoogle, RETRY_DELAY_MS);
+            return;
+        }
+        console.warn('Google API failed to load after max retries');
         return;
     }
+
+    // Reset retry counter on success
+    initRetryCount = 0;
 
     // Load config from local storage
     const creds = JSON.parse(localStorage.getItem('cpro_google_creds') || '{}');

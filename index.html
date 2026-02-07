@@ -397,11 +397,12 @@
             </section>
 
             <!-- Hidden Upload Overlay / Section -->
-            <section id="upload" class="content-section" style="display: none; padding: 0;">
-                <div class="upload-container">
+            <section id="upload" class="content-section upload-section">
+                <div class="upload-wrapper">
+                    <!-- Drop Zone -->
                     <div class="upload-zone" id="dropZone">
                         <div class="upload-icon">
-                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="1.5">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                 <polyline points="17 8 12 3 7 8" />
@@ -413,29 +414,23 @@
                         <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
                         <button class="btn btn-primary" id="selectFileBtn">Seleccionar Archivo</button>
                     </div>
-                </div>
 
-                <!-- Preview Section -->
-                <div class="preview-container" id="previewContainer"
-                    style="display: none; max-height: 80vh; padding: 24px; background: var(--bg-card); border-radius: var(--border-radius-lg); margin: 20px; display: flex; flex-direction: column;">
-                    <div class="preview-header" style="margin-bottom: 16px;">
-                        <h3 style="margin: 0; color: var(--text-primary);">Vista Previa del Archivo</h3>
-                        <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 0.9rem;">Revisa los datos
-                            antes de confirmar</p>
-                    </div>
-                    <div class="preview-table-container"
-                        style="flex: 1; max-height: 45vh; overflow: auto; border: 1px solid var(--border-color); border-radius: var(--border-radius); margin-bottom: 20px;">
-                        <table id="previewTable"
-                            style="width: 100%; min-width: max-content; border-collapse: collapse;">
-                            <thead id="previewTableHead"
-                                style="position: sticky; top: 0; background: var(--bg-tertiary); z-index: 1;"></thead>
-                            <tbody id="previewTableBody"></tbody>
-                        </table>
-                    </div>
-                    <div class="preview-actions"
-                        style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 16px; border-top: 1px solid var(--border-color);">
-                        <button class="btn btn-outline" id="cancelUpload">Cancelar</button>
-                        <button class="btn btn-primary" id="confirmUpload">✓ Confirmar Carga</button>
+                    <!-- Preview Section -->
+                    <div class="preview-container" id="previewContainer">
+                        <div class="preview-header">
+                            <h3>📋 Vista Previa del Archivo</h3>
+                            <p>Mostrando las primeras 15 filas</p>
+                        </div>
+                        <div class="preview-table-wrapper">
+                            <table id="previewTable">
+                                <thead id="previewTableHead"></thead>
+                                <tbody id="previewTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="preview-actions">
+                            <button class="btn btn-outline" id="cancelUpload">✕ Cancelar</button>
+                            <button class="btn btn-primary" id="confirmUpload">✓ Confirmar Carga</button>
+                        </div>
                     </div>
                 </div>
             </section>

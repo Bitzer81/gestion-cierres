@@ -338,7 +338,7 @@ function showPreview(data) {
         });
         previewBody.appendChild(tr);
     });
-    document.getElementById('previewContainer').style.display = 'block';
+    document.getElementById('previewContainer').style.display = 'flex';
 }
 
 function downloadTemplate() {

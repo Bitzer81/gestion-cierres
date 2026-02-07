@@ -82,19 +82,21 @@ body {
 
 .sidebar {
     width: var(--sidebar-width);
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border-color);
+    background: #0f172a;
+    /* Dark Slate 900 */
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
     position: fixed;
     height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     z-index: 1000;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-header {
     padding: 32px 24px;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .logo {
@@ -103,7 +105,7 @@ body {
     gap: 12px;
     font-weight: 700;
     font-size: 1.25rem;
-    color: var(--text-primary);
+    color: #f8fafc;
 }
 
 .logo svg {
@@ -126,7 +128,7 @@ body {
     padding: 12px 16px;
     border-radius: var(--border-radius);
     text-decoration: none;
-    color: var(--text-secondary);
+    color: #94a3b8;
     font-weight: 500;
     transition: all var(--transition-base);
 }
@@ -137,8 +139,8 @@ body {
 }
 
 .nav-item:hover {
-    background: rgba(0, 0, 0, 0.03);
-    color: var(--accent-primary);
+    background: rgba(255, 255, 255, 0.05);
+    color: #f1f5f9;
 }
 
 .nav-item:hover svg {
@@ -146,19 +148,21 @@ body {
 }
 
 .nav-item.active {
-    background: rgba(99, 102, 241, 0.1);
-    color: var(--accent-primary-light);
+    background: var(--accent-primary);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .nav-item.active svg {
     opacity: 1;
-    color: var(--accent-primary);
+    color: #ffffff;
 }
 
 .sidebar-footer {
     padding: 24px;
-    border-top: 1px solid var(--border-color);
-    background: var(--bg-tertiary);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: #020617;
+    /* Slate 950 */
 }
 
 .current-period {
@@ -170,7 +174,7 @@ body {
 .current-period .label {
     font-size: 0.7rem;
     text-transform: uppercase;
-    color: var(--text-tertiary);
+    color: #64748b;
     letter-spacing: 0.5px;
 }
 
@@ -178,6 +182,11 @@ body {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--accent-success);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    max-width: 100%;
 }
 
 .main-content {

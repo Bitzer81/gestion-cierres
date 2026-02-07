@@ -755,25 +755,45 @@ function filterData() {
 
 function updateDashboard(data) {
     updateKPIs(data);
-    updateDataTable(data.rows);
-    const byC = {}, byL = {};
+
+    // Performance: Limit data table rendering to top 100 rows
+    updateDataTable(data.rows.slice(0, 100));
+
+    // Consolidated Aggregation
+    const agg = {
+        byCenter: {},
+        byLine: {},
+        byStatus: {}
+    };
+
     data.rows.forEach(r => {
-        if (!byC[r.centro]) {
-            byC[r.centro] = { revenue: r.venta, cost: r.coste, margin: r.margen, venta: r.venta, margen: r.margen, presVenta: r.presVenta || 0 };
+        // By Center
+        if (!agg.byCenter[r.centro]) {
+            agg.byCenter[r.centro] = { revenue: r.venta, cost: r.coste, margin: r.margen, venta: r.venta, margen: r.margen, presVenta: r.presVenta || 0 };
         } else {
-            byC[r.centro].revenue += r.venta;
-            byC[r.centro].cost += r.coste;
-            byC[r.centro].margin += r.margen;
-            byC[r.centro].venta += r.venta;
-            byC[r.centro].margen += r.margen;
-            byC[r.centro].presVenta += (r.presVenta || 0);
+            const c = agg.byCenter[r.centro];
+            c.revenue += r.venta; c.cost += r.coste; c.margin += r.margen;
+            c.venta += r.venta; c.margen += r.margen; c.presVenta += (r.presVenta || 0);
         }
-        if (!byL[r.lineaNegocio]) byL[r.lineaNegocio] = { venta: 0, margen: 0 };
-        byL[r.lineaNegocio].venta += r.venta; byL[r.lineaNegocio].margen += r.margen;
+
+        // By Line
+        if (!agg.byLine[r.lineaNegocio]) agg.byLine[r.lineaNegocio] = { venta: 0, margen: 0 };
+        agg.byLine[r.lineaNegocio].venta += r.venta;
+        agg.byLine[r.lineaNegocio].margen += r.margen;
+
+        // By Status
+        const estado = r.estado || 'Sin Estado';
+        if (!agg.byStatus[estado]) agg.byStatus[estado] = { venta: 0, margen: 0 };
+        agg.byStatus[estado].venta += r.venta;
+        agg.byStatus[estado].margen += r.margen;
     });
-    if (AppState.charts.monthly) updateCharts(byL, byC);
+
+    if (AppState.charts.monthly) updateCharts(agg.byLine, agg.byCenter, agg.byStatus);
+
     renderAnalysis();
-    AppState.managedClients.forEach(cl => { if (document.getElementById(cl.id)) renderClientDashboard(cl.name, cl.id); });
+    AppState.managedClients.forEach(cl => {
+        if (document.getElementById(cl.id)) renderClientDashboard(cl.name, cl.id);
+    });
 }
 
 // ========================================
@@ -1127,6 +1147,7 @@ function initCharts() {
     gradientCost.addColorStop(0, 'rgba(239, 68, 68, 0.2)');
     gradientCost.addColorStop(1, 'rgba(239, 68, 68, 0.02)');
 
+    if (AppState.charts.monthly) AppState.charts.monthly.destroy();
     AppState.charts.monthly = new Chart(monthlyCtx, {
         type: 'line',
         data: {
@@ -1178,6 +1199,7 @@ function initCharts() {
     });
 
     // 2. Ventas por Línea de Negocio - Enhanced Doughnut with values
+    if (AppState.charts.distribution) AppState.charts.distribution.destroy();
     AppState.charts.distribution = new Chart(document.getElementById('costDistributionChart'), {
         type: 'doughnut',
         data: {
@@ -1230,6 +1252,7 @@ function initCharts() {
     });
 
     // 3. Distribución por Estado - Doughnut Chart
+    if (AppState.charts.byEstado) AppState.charts.byEstado.destroy();
     AppState.charts.byEstado = new Chart(document.getElementById('topVentasChart'), {
         type: 'doughnut',
         data: {
@@ -1261,6 +1284,7 @@ function initCharts() {
     });
 
     // 4. Margen por Línea de Negocio - Horizontal Bar with gradients
+    if (AppState.charts.margenLinea) AppState.charts.margenLinea.destroy();
     AppState.charts.margenLinea = new Chart(document.getElementById('topMargenChart'), {
         type: 'bar',
         data: {
@@ -1314,7 +1338,7 @@ function initCharts() {
     AppState.estadoColors = estadoColors;
 }
 
-function updateCharts(byL, byC) {
+function updateCharts(byL, byC, byStatus) {
     // 1. Ventas por Línea de Negocio (Doughnut)
     if (AppState.charts.distribution) {
         const ls = Object.keys(byL)
@@ -1327,21 +1351,11 @@ function updateCharts(byL, byC) {
     }
 
     // 2. Distribución por Estado (Doughnut)
-    if (AppState.charts.byEstado && AppState.processedData) {
-        const byEstado = {};
-        AppState.processedData.rows.forEach(r => {
-            const estado = r.estado || 'Sin Estado';
-            if (!byEstado[estado]) byEstado[estado] = { venta: 0, margen: 0 };
-            byEstado[estado].venta += r.venta;
-            byEstado[estado].margen += r.margen;
-        });
-
-        // Debug: Log unique estados encontrados
-        console.log('Estados únicos encontrados:', Object.keys(byEstado));
-
-        const estados = Object.keys(byEstado)
+    if (AppState.charts.byEstado && byStatus) {
+        // Optimization: Use pre-calculated status aggregation
+        const estados = Object.keys(byStatus)
             .filter(e => e && e.trim() !== '' && e !== 'Sin Estado')
-            .sort((a, b) => byEstado[b].venta - byEstado[a].venta)
+            .sort((a, b) => byStatus[b].venta - byStatus[a].venta)
             .slice(0, 8);
 
         const estadoColorPalette = [
@@ -1356,7 +1370,7 @@ function updateCharts(byL, byC) {
         ];
 
         AppState.charts.byEstado.data.labels = estados;
-        AppState.charts.byEstado.data.datasets[0].data = estados.map(e => byEstado[e].venta);
+        AppState.charts.byEstado.data.datasets[0].data = estados.map(e => byStatus[e].venta);
         AppState.charts.byEstado.data.datasets[0].backgroundColor = estados.map((e, i) => estadoColorPalette[i % estadoColorPalette.length]);
         AppState.charts.byEstado.update();
     }
@@ -1383,6 +1397,7 @@ function updateMonthlyChart() {
 }
 
 function initDynamicClientChart(id) {
+    if (AppState.charts[id]) AppState.charts[id].destroy();
     AppState.charts[id] = new Chart(document.getElementById(`${id}Chart`), { type: 'bar', data: { labels: [], datasets: [{ label: 'Venta (€)', backgroundColor: '#6366f1' }] }, options: { responsive: true, maintainAspectRatio: false } });
 }
 

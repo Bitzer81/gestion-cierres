@@ -498,24 +498,31 @@ function parseNumber(v) {
     let s = String(v).trim();
     if (!s) return 0;
 
-    // Detectar signo negativo
+    // Eliminar caracteres invisibles, espacios y símbolos de moneda
+    // \u00A0 es non-breaking space
+    s = s.replace(/[\s\u00A0€$£%]/g, '');
+
+    // Detectar signo negativo (paréntesis o signo menos al final/principio)
     let neg = false;
-    if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.replace(/[()]/g, ''); }
+    if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.slice(1, -1); }
     else if (s.endsWith('-')) { neg = true; s = s.slice(0, -1); }
     else if (s.startsWith('-')) { neg = true; s = s.slice(1); }
 
-    s = s.replace(/[â‚¬$Â£\s]/g, '');
-
+    // Determinar formato numérico
     const lastComma = s.lastIndexOf(',');
     const lastDot = s.lastIndexOf('.');
 
     if (lastComma > lastDot) {
-        // Formato Europeo: 1.234,56
+        // Formato Europeo probable: 1.234,56
+        // Eliminamos puntos de miles y reemplazamos coma decimal por punto
         s = s.replace(/\./g, '').replace(',', '.');
     } else if (lastDot > lastComma) {
-        // Formato Americano: 1,234.56
+        // Formato Americano probable: 1,234.56
+        // Eliminamos comas de miles
         s = s.replace(/,/g, '');
     } else {
+        // Solo hay comas o solo puntos, o ninguno
+        // Si hay coma y no punto, asumimos decimal europeo (12,5)
         if (lastComma !== -1) s = s.replace(',', '.');
     }
 
@@ -1500,9 +1507,9 @@ function renderHistory() {
     if (!AppState.historicalData.length) {
         g.innerHTML = `
             <div class="empty-state-large" style="grid-column: 1/-1; text-align: center; padding: 60px;">
-                <div style="font-size: 3rem; margin-bottom: 16px;">ðŸ“Š</div>
-                <h3>Sin datos histÃ³ricos</h3>
-                <p style="color: var(--text-muted); margin-top: 8px;">Carga archivos Excel para generar histÃ³rico</p>
+                <div style="font-size: 3rem; margin-bottom: 16px;">📊</div>
+                <h3>Sin datos históricos</h3>
+                <p style="color: var(--text-muted); margin-top: 8px;">Carga archivos Excel para generar histórico</p>
             </div>`;
         return;
     }
@@ -1562,7 +1569,7 @@ function loadSettings() {
 // 12. Backup & Export
 // ========================================
 function exportData() {
-    const rows = [['PerÃ­odo', 'Ventas', 'Costes', 'Margen']]; AppState.historicalData.forEach(h => rows.push([h.period, h.totals.totalVenta, h.totals.totalCoste, h.totals.totalMargen]));
+    const rows = [['Período', 'Ventas', 'Costes', 'Margen']]; AppState.historicalData.forEach(h => rows.push([h.period, h.totals.totalVenta, h.totals.totalCoste, h.totals.totalMargen]));
     const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Resumen'); XLSX.writeFile(wb, `CierresPro_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
 }

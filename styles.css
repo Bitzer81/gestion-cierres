@@ -784,6 +784,7 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
 }
+
 /* ========================================
    14. Clients Hub Styles
    ======================================== */
@@ -823,9 +824,20 @@ tbody tr:hover {
     color: var(--text-tertiary);
 }
 
-.ranking-item:nth-child(1) .ranking-pos { background: #ffd700; color: #000; }
-.ranking-item:nth-child(2) .ranking-pos { background: #c0c0c0; color: #000; }
-.ranking-item:nth-child(3) .ranking-pos { background: #cd7f32; color: #000; }
+.ranking-item:nth-child(1) .ranking-pos {
+    background: #ffd700;
+    color: #000;
+}
+
+.ranking-item:nth-child(2) .ranking-pos {
+    background: #c0c0c0;
+    color: #000;
+}
+
+.ranking-item:nth-child(3) .ranking-pos {
+    background: #cd7f32;
+    color: #000;
+}
 
 .ranking-info {
     flex: 1;
@@ -860,10 +872,32 @@ tbody tr:hover {
 /* ========================================
    Critical Alerts & Highlighting
    ======================================== */
-.critical-row { background: rgba(239, 68, 68, 0.08) !important; transition: background 0.3s ease; }
-.critical-row:hover { background: rgba(239, 68, 68, 0.12) !important; }
-.critical-margin { color: #ef4444 !important; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
-.margin-badge-low { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: 600; border: 1px solid #fecaca; }
+.critical-row {
+    background: rgba(239, 68, 68, 0.08) !important;
+    transition: background 0.3s ease;
+}
+
+.critical-row:hover {
+    background: rgba(239, 68, 68, 0.12) !important;
+}
+
+.critical-margin {
+    color: #ef4444 !important;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.margin-badge-low {
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    border: 1px solid #fecaca;
+}
 
 /* ========================================
    Search Input Styling
@@ -1013,4 +1047,114 @@ tbody tr:hover {
 
 .history-stat-item .value.negative {
     color: var(--accent-danger);
+}
+
+/* ========================================
+   16. Login Screen
+   ======================================== */
+.login-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.login-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    padding: 48px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: var(--shadow-xl);
+    animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.login-logo svg {
+    color: var(--accent-primary);
+}
+
+.login-logo h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.login-subtitle {
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+}
+
+.login-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 24px 0;
+}
+
+.login-text {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+}
+
+.login-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 24px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.login-btn:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.login-error {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--accent-danger);
+    border-radius: var(--border-radius);
+    color: var(--accent-danger);
+    font-size: 0.85rem;
 }

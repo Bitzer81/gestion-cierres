@@ -1174,7 +1174,7 @@ tbody tr:hover {
     left: var(--sidebar-width);
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+    background: var(--bg-primary);
     z-index: 500;
     align-items: center;
     justify-content: center;
